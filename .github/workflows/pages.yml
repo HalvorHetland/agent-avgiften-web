@@ -30,6 +30,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # GitHub Pages serverer med max-age=600. Uten cache-busting kan skjermen
+      # kjøre ti minutter gammel kode etter en deploy på standdagen. Vi
+      # stempler commit-SHA inn i script-taggene, så hver deploy er en ny URL.
+      - name: Stemple versjon
+        run: |
+          VER="${GITHUB_SHA::7}"
+          find public -name '*.html' -exec sed -i "s/__VER__/$VER/g" {} +
+          echo "Stemplet $VER"
+          grep -o 'src="[^"]*"' public/index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
