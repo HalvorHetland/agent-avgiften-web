@@ -108,7 +108,8 @@ function arealdiagram(bredde, hoyde) {
 
   const klokke = (ms) => new Date(ms).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
 
-  return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="${bredde}" height="${hoyde}" role="img"
+  return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="100%" height="${hoyde}"
+      preserveAspectRatio="xMidYMid meet" role="img"
       aria-label="Stablet areal: AI-energi brukt, delt i dekket av sveiving og udekket">
     ${linjer}
     <polygon points="${skille} ${topp.split(" ").reverse().join(" ")}" fill="#f97316" fill-opacity="0.85"/>
@@ -191,7 +192,7 @@ function tegn() {
           </div>
         </div>
       </div>
-      ${arealdiagram(940, 300)}
+      ${arealdiagram(1166, 300)}
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5;margin-top:-4px">
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
         har laget selv — resten er kjøpt.
