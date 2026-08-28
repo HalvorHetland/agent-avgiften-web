@@ -287,5 +287,10 @@ function skaler() {
   scene.style.width = Math.round(1920 * s) + "px";
   scene.style.height = Math.round(1080 * s) + "px";
 }
+// `resize` alene er ikke nok: en projektor som kobles til bytter oppløsning
+// uten at hendelsen alltid fyrer, og skaleringen ville blitt stående på det
+// laptopskjermen hadde ved lasting. ResizeObserver fanger enhver endring.
+new ResizeObserver(skaler).observe(document.documentElement);
 addEventListener("resize", skaler);
+addEventListener("load", skaler);
 skaler();
