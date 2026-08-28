@@ -36,7 +36,8 @@ const MAAL_JOULE = 8640;     // ti spørsmål
 const KORPUS = { raa: 103001, reint: 1175, forhold: 87.7 };
 
 let T = null;        // siste booth_totals
-let SVEIV = [];      // siste tolv økter
+let SVEIV = [];      // siste tolv sveiveøkter
+let SISTE = [];      // siste innleverte målinger
 let forrige = {};    // for å pulse tall som har endret seg
 
 // ─────────────────────────────────────────────────────────────── formatering
@@ -55,13 +56,15 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, s] = await Promise.all([
+    const [t, s, m] = await Promise.all([
       db.from("booth_totals").select("*").single(),
       db.from("siste_sveiv").select("*"),
+      db.from("siste_maalinger").select("*"),
     ]);
     if (t.error) throw t.error;
     T = t.data;
     SVEIV = s.data ?? [];
+    SISTE = m.data ?? [];
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     // Behold siste kjente tall og si fra. Bedre enn en tom skjerm, og langt
@@ -106,6 +109,7 @@ function tallene() {
     spoersmaal: T ? Number(T.spoersmaal) : 0,
     sveiveoekter: T ? Number(T.sveiveoekter) : 0,
     kuttede: T ? Number(T.kuttede_kall) : 0,
+    raa_tegn: T ? Number(T.raa_tegn) : 0,
     brukt: T ? Number(T.brukt_usd) : 0,
     budsjett: T ? Number(T.budsjett_usd) : 0,
   };
@@ -130,27 +134,77 @@ function qrMarkup() {
     }))">`;
 }
 
+/* Relaterbare enheter.
+ *
+ * Tokens sier ingenting til noen som ikke jobber med dette. Fire omregninger,
+ * alle med oppgitt forutsetning — ingen av dem er pyntet:
+ *
+ *  · sider og lesetid regnes fra TEGN, ikke fra tokens. Vi lagrer sidas fulle
+ *    tegnantall (`raa_tegn`), så det er en direkte måling uten tokenizer-
+ *    antakelser i veien.
+ *  · vann og energi er per forespørsel, fra samme papir (arXiv:2508.15734).
+ */
+const TEGN_PER_SIDE = 3000;      // tett A4-side
+const TEGN_PER_MINUTT = 1000;    // ~200 ord i minuttet
+const ML_VANN_PER_KALL = 0.26;   // Google 2025, median tekstforespørsel
+const WH_PER_KALL = 0.24;        // samme papir
+
+function enheter(d) {
+  const sider = d.raa_tegn / TEGN_PER_SIDE;
+  const lesemin = d.raa_tegn / TEGN_PER_MINUTT;
+  const vannMl = d.kall * ML_VANN_PER_KALL;
+  const wh = d.kall * WH_PER_KALL;
+
+  const lesetid = lesemin < 90
+    ? `${Math.round(lesemin)} min`
+    : `${komma(lesemin / 60)} t`;
+  const vann = vannMl < 1000
+    ? `${komma(vannMl, 0)} mL`
+    : `${komma(vannMl / 1000)} L`;
+
+  return [
+    { tall: sep(sider),   navn: "A4-sider tekst",   fin: "3 000 tegn per side" },
+    { tall: lesetid,      navn: "å lese for et menneske", fin: "~200 ord i minuttet" },
+    { tall: vann,         navn: "vann til kjøling", fin: "0,26 mL per forespørsel" },
+    { tall: komma(wh) + " Wh", navn: "strøm, som gulv", fin: "0,24 Wh per forespørsel" },
+  ];
+}
+
+/* De siste innleverte målingene. Viser side og tall — aldri studentens egne
+ * ord. Handoffen er tydelig: fritekst blir på telefonen. */
+function sisteMaalinger() {
+  if (!SISTE.length) {
+    return `<div style="font-size:17px;color:#5a5a5a">Ingen målinger enda i dag.</div>`;
+  }
+  return SISTE.slice(0, 6).map((m) => {
+    const side = String(m.side).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+    const f = m.tokens_reint > 0 ? m.tokens_raa / m.tokens_reint : 0;
+    return `<div style="display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid #1c1c1c">
+      <div class="mono" style="font-size:16px;color:#9a9a9a;width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${side}</div>
+      <div class="mono" style="font-size:17px;color:#f97316;width:88px;text-align:right">${sep(m.tokens_raa)}</div>
+      <div class="mono" style="font-size:15px;color:#4a4a4a">/</div>
+      <div class="mono" style="font-size:17px;color:#4ade80;width:62px;text-align:right">${sep(m.tokens_reint)}</div>
+      <div class="mono disp" style="font-size:19px;color:#fb923c;margin-left:auto">${f < 10 ? komma(f) : Math.round(f)}×${m.kuttet ? "<span style='font-size:13px;color:#fbbf24'>+</span>" : ""}</div>
+    </div>`;
+  }).join("");
+}
+
 // ───────────────────────────────────────────────────────────────── tegning
 
 function tegn() {
   const d = tallene();
+  const e = enheter(d);
 
   const soyler = (() => {
-    if (!SVEIV.length) {
-      return Array.from({ length: 12 }, () =>
-        `<div style="flex-grow:1;border-radius:3px;height:4%;background:#1a1a1a"></div>`).join("");
-    }
+    const tom = `<div style="flex-grow:1;border-radius:3px;height:4%;background:#1a1a1a"></div>`;
+    if (!SVEIV.length) return tom.repeat(12);
     const maks = Math.max(...SVEIV.map((s) => Number(s.joules)), 1);
-    // Eldste til venstre, nyeste til høyre — slik man leser en tidslinje.
-    const rekke = [...SVEIV].reverse();
-    const tomme = 12 - rekke.length;
-    return Array.from({ length: tomme }, () =>
-      `<div style="flex-grow:1;border-radius:3px;height:4%;background:#1a1a1a"></div>`).join("")
-      + rekke.map((s) => {
-        const h = Math.max(6, (Number(s.joules) / maks) * 100);
-        const c = h > 85 ? "#4ade80" : (h > 60 ? "#2b5233" : "#1e3a24");
-        return `<div style="flex-grow:1;border-radius:3px;height:${h}%;background:${c}"></div>`;
-      }).join("");
+    const rekke = [...SVEIV].reverse();   // eldst til venstre, som en tidslinje
+    return tom.repeat(Math.max(0, 12 - rekke.length)) + rekke.map((s) => {
+      const h = Math.max(6, (Number(s.joules) / maks) * 100);
+      const c = h > 85 ? "#4ade80" : (h > 60 ? "#2b5233" : "#1e3a24");
+      return `<div style="flex-grow:1;border-radius:3px;height:${h}%;background:${c}"></div>`;
+    }).join("");
   })();
 
   const siste = SVEIV[0];
@@ -158,115 +212,147 @@ function tegn() {
     ? `${sep(siste.joules)} J${siste.peak_watts ? " · " + komma(siste.peak_watts, 0) + " W topp" : ""}`
     : "ingen enda";
 
-  // Den grønne søyla i forhold til den oransje. Minst 6 px så den er synlig.
   const reintBredde = d.raa > 0 ? Math.max(0.2, (d.reint / d.raa) * 100) : 0;
+  const spart = d.raa - d.reint;
 
   document.getElementById("rot").innerHTML = `
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:40px">
-    <div class="kol" style="gap:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:40px;flex-shrink:0">
+    <div class="kol" style="gap:8px">
       <div class="lbl" style="color:#f97316">Energiregnskap · standen i dag</div>
-      <div class="disp" style="font-size:52px;font-weight:700;line-height:1">Hva koster det å spørre?</div>
+      <div class="disp" style="font-size:46px;font-weight:700;line-height:1">Hva koster det å spørre?</div>
     </div>
-    <div style="display:flex;align-items:center;gap:22px;padding:16px 24px;flex-shrink:0" class="kort">
+    <div style="display:flex;align-items:center;gap:20px;padding:14px 20px;flex-shrink:0" class="kort">
       ${qrMarkup()}
-      <div class="kol" style="gap:9px">
-        <div class="disp" style="font-size:28px;font-weight:700;line-height:1.1">Skann og prøv selv</div>
-        <div style="font-size:17px;color:#9a9a9a;line-height:1.4">Velg en side, still ditt eget<br>spørsmål — omtrent ett minutt</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:3px">
-          <div style="width:10px;height:10px;border-radius:999px;background:#4ade80"></div>
-          <div class="mono" style="font-size:15px;color:#9a9a9a">oppdaterer live</div>
+      <div class="kol" style="gap:7px">
+        <div class="disp" style="font-size:25px;font-weight:700;line-height:1.1">Skann og prøv selv</div>
+        <div style="font-size:15px;color:#9a9a9a;line-height:1.4">Velg en side, still ditt eget<br>spørsmål — omtrent ett minutt</div>
+        <div style="display:flex;align-items:center;gap:9px;margin-top:2px">
+          <div style="width:9px;height:9px;border-radius:999px;background:#4ade80"></div>
+          <div class="mono" style="font-size:14px;color:#9a9a9a">oppdaterer live</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div style="display:flex;gap:30px;flex-grow:1;min-height:0">
+  <div style="display:flex;gap:26px;flex-grow:1;min-height:0">
 
-    <div class="kort kol" style="flex-grow:1;gap:24px;padding:38px;border-color:#3a2412;min-width:0">
+    <div class="kort kol" style="flex-grow:1;gap:18px;padding:32px;border-color:#3a2412;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="lbl" style="color:#f97316">AI-en har brukt${d.kaldstart ? " · korpus, ikke i dag" : ""}</div>
-        ${d.kuttede > 0 ? `<div class="mono" style="font-size:15px;color:#fbbf24">${d.kuttede} av ${d.kall} kall ble kuttet — tallene er et gulv</div>` : ""}
-      </div>
-      <div style="display:flex;align-items:baseline;gap:15px">
-        <div class="mono disp${nytt("raa", d.raa)}" style="font-size:96px;font-weight:500;line-height:0.9;color:#f97316">${sep(d.raa)}</div>
-        <div style="font-size:24px;color:#9a9a9a">tokens</div>
+        ${d.kuttede > 0 ? `<div class="mono" style="font-size:14px;color:#fbbf24">${d.kuttede} av ${d.kall} kall kuttet — gulv</div>` : ""}
       </div>
 
-      <div class="kol" style="gap:15px">
-        <div class="kol" style="gap:8px">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:21px;color:#ededed">Hele siden slik den er kodet</span>
-            <span class="mono" style="font-size:21px;color:#fb923c">${sep(d.raa)}</span>
+      <div style="display:flex;align-items:flex-end;gap:34px">
+        <div class="kol" style="gap:2px">
+          <div style="display:flex;align-items:baseline;gap:11px">
+            <div class="mono disp${nytt("raa", d.raa)}" style="font-size:76px;font-weight:500;line-height:0.9;color:#f97316">${sep(d.raa)}</div>
+            <div style="font-size:20px;color:#9a9a9a">tokens</div>
           </div>
-          <div style="height:42px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
+          <div style="font-size:15px;color:#6b6b6b">slik nettet er i dag</div>
         </div>
-        <div class="kol" style="gap:8px">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:21px;color:#ededed">Bare teksten på siden</span>
-            <span class="mono" style="font-size:21px;color:#4ade80">${sep(d.reint)}</span>
+        <div class="kol" style="gap:2px;padding-left:30px;border-left:1px solid #282828">
+          <div style="display:flex;align-items:baseline;gap:10px">
+            <div class="mono disp${nytt("reint", d.reint)}" style="font-size:52px;font-weight:500;line-height:0.9;color:#4ade80">${sep(d.reint)}</div>
+            <div style="font-size:18px;color:#9a9a9a">tokens</div>
           </div>
-          <div style="height:42px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${reintBredde}%;min-width:6px;height:100%;background:#4ade80"></div></div>
+          <div style="font-size:15px;color:#4ade80">med min løsning</div>
         </div>
       </div>
 
-      <div style="display:flex;margin-top:auto;padding-top:24px;border-top:1px solid #282828">
+      <div class="kol" style="gap:12px">
+        <div class="kol" style="gap:7px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:19px;color:#ededed">Hele siden slik den er kodet</span>
+            <span class="mono" style="font-size:19px;color:#fb923c">${sep(d.raa)}</span>
+          </div>
+          <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
+        </div>
+        <div class="kol" style="gap:7px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:19px;color:#ededed">Bare teksten på siden</span>
+            <span class="mono" style="font-size:19px;color:#4ade80">${sep(d.reint)}</span>
+          </div>
+          <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${reintBredde}%;min-width:6px;height:100%;background:#4ade80"></div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;margin-top:auto;padding-top:20px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall${nytt("spm", d.spoersmaal)}">${sep(d.spoersmaal)}</div>
           <div class="statNavn">spørsmål stilt</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall${nytt("kall", d.kall)}">${sep(d.kall)}</div>
-          <div class="statNavn">kall til modellen</div>
+          <div class="mono disp statTall${nytt("spart", spart)}" style="color:#4ade80">${sep(spart)}</div>
+          <div class="statNavn">tokens spart</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:#fb923c">${d.forhold < 10 ? komma(d.forhold) : sep(d.forhold)}<span style="font-size:23px;color:#9a9a9a">×</span></div>
+          <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:#fb923c">${d.forhold < 10 ? komma(d.forhold) : sep(d.forhold)}<span style="font-size:21px;color:#9a9a9a">×</span></div>
           <div class="statNavn">dyrere enn nødvendig${d.kuttede > 0 ? ", minst" : ""}</div>
         </div>
       </div>
     </div>
 
-    <div class="kort kol" style="width:640px;flex-shrink:0;gap:24px;padding:38px;border-color:#1e3a24">
+    <div class="kort kol" style="width:470px;flex-shrink:0;gap:14px;padding:28px 30px">
+      <div class="lbl">Siste innleverte</div>
+      <div style="display:flex;gap:14px;font-size:13px;color:#5a5a5a;padding-bottom:2px">
+        <span style="width:150px">side</span><span style="width:88px;text-align:right">kodet</span>
+        <span style="width:12px"></span><span style="width:62px;text-align:right">tekst</span>
+        <span style="margin-left:auto">forskjell</span>
+      </div>
+      <div class="kol" style="min-height:0;overflow:hidden">${sisteMaalinger()}</div>
+      <div class="fin" style="margin-top:auto;font-size:13px;color:#5a5a5a;line-height:1.45">
+        Spørsmålene blir på telefonene. Her står bare side og tall.${d.kuttede > 0 ? " <span style='color:#fbbf24'>+</span> betyr at siden var for stor og ble kuttet." : ""}
+      </div>
+    </div>
+
+    <div class="kort kol" style="width:470px;flex-shrink:0;gap:16px;padding:28px 30px;border-color:#1e3a24">
       <div class="lbl" style="color:#4ade80">Dere har sveivet</div>
-      <div style="display:flex;align-items:baseline;gap:15px">
-        <div class="mono disp${nytt("joules", d.joules)}" style="font-size:96px;font-weight:500;line-height:0.9;color:#4ade80">${sep(d.joules)}</div>
-        <div style="font-size:24px;color:#9a9a9a">joule</div>
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <div class="mono disp${nytt("joules", d.joules)}" style="font-size:64px;font-weight:500;line-height:0.9;color:#4ade80">${sep(d.joules)}</div>
+        <div style="font-size:20px;color:#9a9a9a">joule</div>
       </div>
-
-      <div class="kol" style="gap:12px">
+      <div class="kol" style="gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:19px;color:#9a9a9a">Siste økt</span>
-          <span class="mono" style="font-size:19px">${sisteTekst}</span>
+          <span style="font-size:17px;color:#9a9a9a">Siste økt</span>
+          <span class="mono" style="font-size:17px">${sisteTekst}</span>
         </div>
-        <div style="display:flex;align-items:flex-end;gap:6px;height:150px">${soyler}</div>
-        <div style="font-size:16px;color:#6b6b6b">siste tolv økter</div>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:104px">${soyler}</div>
+        <div style="font-size:15px;color:#6b6b6b">siste tolv økter</div>
       </div>
-
-      <div style="display:flex;margin-top:auto;padding-top:24px;border-top:1px solid #282828">
+      <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall${nytt("oekter", d.sveiveoekter)}">${sep(d.sveiveoekter)}</div>
           <div class="statNavn">som har sveivet</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall">${komma(d.wh)}<span style="font-size:23px;color:#9a9a9a"> Wh</span></div>
+          <div class="mono disp statTall">${komma(d.wh)}<span style="font-size:21px;color:#9a9a9a"> Wh</span></div>
           <div class="statNavn">samlet</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div style="display:flex;align-items:center;gap:40px;padding:30px 38px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px">
-    <div class="kol" style="gap:7px;flex-shrink:0">
-      <div class="mono disp" style="font-size:60px;font-weight:500;line-height:1;color:#fbbf24">${d.dekning > 0 && d.dekning < 1 ? komma(d.dekning) : Math.round(d.dekning)} %</div>
-      <div style="font-size:18px;color:#9a9a9a">av strømmen er sveivet inn</div>
+  <div style="display:flex;gap:26px;flex-shrink:0">
+    ${e.map((x) => `<div class="kort kol" style="flex:1;gap:4px;padding:20px 24px;min-width:0">
+      <div class="mono disp" style="font-size:34px;font-weight:500;line-height:1;color:#ededed">${x.tall}</div>
+      <div style="font-size:16px;color:#9a9a9a;line-height:1.3">${x.navn}</div>
+      <div style="font-size:13px;color:#5a5a5a;margin-top:2px">${x.fin}</div>
+    </div>`).join("")}
+  </div>
+
+  <div style="display:flex;align-items:center;gap:34px;padding:24px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
+    <div class="kol" style="gap:5px;flex-shrink:0">
+      <div class="mono disp" style="font-size:50px;font-weight:500;line-height:1;color:#fbbf24">${d.dekning > 0 && d.dekning < 1 ? komma(d.dekning) : Math.round(d.dekning)} %</div>
+      <div style="font-size:17px;color:#9a9a9a">av strømmen er sveivet inn</div>
     </div>
     <div style="width:1px;align-self:stretch;background:#282828"></div>
-    <div class="kol" style="gap:8px;flex-grow:1">
-      <div style="font-size:22px;color:#ededed;line-height:1.45">Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — nok til de ti neste spørsmålene. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.</div>
-      <div style="font-size:16px;color:#6b6b6b;line-height:1.5">Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Våre råe spørsmål er mye større enn en median forespørsel, så dette er et gulv, ikke et estimat.</div>
+    <div class="kol" style="gap:6px;flex-grow:1">
+      <div style="font-size:20px;color:#ededed;line-height:1.45">Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — nok til de ti neste spørsmålene. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.</div>
+      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Våre råe spørsmål er mye større enn en median forespørsel, så dette er et gulv, ikke et estimat.</div>
     </div>
-    <div class="kol" style="gap:6px;flex-shrink:0;align-items:flex-end;padding-left:30px;border-left:1px solid #282828">
-      <div class="mono" style="font-size:20px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#6b6b6b"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
-      <div style="font-size:15px;color:#5a5a5a">av dagens budsjett</div>
+    <div class="kol" style="gap:5px;flex-shrink:0;align-items:flex-end;padding-left:26px;border-left:1px solid #282828">
+      <div class="mono" style="font-size:19px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#6b6b6b"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
+      <div style="font-size:14px;color:#5a5a5a">av dagens budsjett</div>
     </div>
   </div>`;
 }

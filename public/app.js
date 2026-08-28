@@ -57,6 +57,7 @@ function nyOkt() {
     feil: null,       // { grunn, http_status, detalj }
     fritekst: "",
     totaler: null,
+    ferdig: false,
   };
 }
 
@@ -223,9 +224,16 @@ const HANDLINGER = {
   sendFritekst() {
     const t = S.fritekst.trim();
     if (t) skriv("free_text", { session_id: S.session_id, body: t.slice(0, 500) });
-    S = nyOkt(); tegn();
+    S.fritekst = "";
+    S.steg = 7; tegn(); hentTotaler();
   },
+  hoppOver() { S.steg = 7; tegn(); hentTotaler(); },
+  // Ny økt = ny anonym identitet. Resultatet fra forrige runde tas ikke med
+  // videre; neste student skal ikke se noen andres tall.
   påNytt() { S = nyOkt(); tegn(); },
+  // Rolig sluttilstand. Telefonen er studentens egen, så vi «logger ikke ut» —
+  // vi slutter bare å be om noe.
+  avslutt() { S.ferdig = true; tegn(); },
 };
 
 // ───────────────────────────────────────────────────────────────── skjermer
@@ -233,7 +241,7 @@ const HANDLINGER = {
 function skjerm() {
   if (S.laster) return laster();
   if (S.feil) return feilskjerm();
-  return [s0, s1, null, s3, s4, s5, s6][S.steg]?.() ?? s0();
+  return [s0, s1, null, s3, s4, s5, s6, s7][S.steg]?.() ?? s0();
 }
 
 const køLinje = () => {
@@ -419,7 +427,7 @@ function s6() {
     ${køLinje()}
     <div class="kol" style="gap:11px;margin-top:auto">
       <div class="btn" data-handling="sendFritekst"><span class="disp" style="font-size:19px;font-weight:700;color:#fff">Send inn</span></div>
-      <div class="btn-ghost" data-handling="påNytt"><span style="font-size:17px;color:#9a9a9a">Hopp over</span></div>
+      <div class="btn-ghost" data-handling="hoppOver"><span style="font-size:17px;color:#9a9a9a">Hopp over</span></div>
     </div>
   </div>`;
 }
@@ -451,6 +459,64 @@ function nummerBoks() {
   if (!t) return "";
   return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
     <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Du er nummer <span class="mono" style="color:#4ade80">${tall(t.spoersmaal)}</span> i dag. Til sammen har dere sveivet inn <span class="mono" style="color:#4ade80">${tall(t.joules)} J</span>.</div>
+  </div>`;
+}
+
+/* Steg 7 — avslutning.
+ *
+ * Studenten skal kunne gå ryddig ut, eller ta en runde til med en annen side.
+ * Vi viser deres eget måletall en siste gang, fordi det er det de husker når
+ * de går fra standen. */
+function s7() {
+  if (S.ferdig) return ferdig();
+
+  const r = S.resultat;
+  const forhold = r ? r.raa.input_tokens / r.rein.input_tokens : null;
+
+  return `
+  <div class="kol" style="gap:19px;height:100%">
+    <div class="lbl" style="color:#4ade80">Ferdig</div>
+    <div class="disp" style="font-size:33px;font-weight:700;line-height:1.13">Takk — svaret ditt er med i oppgaven</div>
+    <div style="font-size:15px;color:#9a9a9a;line-height:1.5">Helt anonymt. Ingenting om deg er lagret, bare tallene og det du svarte.</div>
+
+    ${r ? `<div class="kol" style="gap:12px;padding:18px 19px;background:#111;border:1px solid #282828;border-radius:12px">
+      <div class="lbl">Din måling</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:14.5px;color:#9a9a9a">Hele siden slik den er kodet</span>
+        <span class="mono" style="font-size:18px;color:#f97316">${tall(r.raa.input_tokens)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:14.5px;color:#9a9a9a">Bare teksten på siden</span>
+        <span class="mono" style="font-size:18px;color:#4ade80">${tall(r.rein.input_tokens)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:11px;border-top:1px solid #282828">
+        <span style="font-size:14.5px;color:#ededed">Forskjell</span>
+        <span class="mono disp" style="font-size:24px;color:#fb923c">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</span>
+      </div>
+    </div>` : ""}
+
+    ${nummerBoks()}
+    ${køLinje()}
+
+    <div class="kol" style="gap:11px;margin-top:auto">
+      <div class="btn" data-handling="påNytt"><span class="disp" style="font-size:19px;font-weight:700;color:#fff">Prøv en annen side</span></div>
+      <div class="btn-ghost" data-handling="avslutt"><span style="font-size:17px;color:#9a9a9a">Jeg er ferdig</span></div>
+    </div>
+  </div>`;
+}
+
+/* Sluttbildet. Med vilje stille: ingen knapper som lokker videre, bare en
+ * vei tilbake hvis noen ombestemmer seg og gir telefonen til en venn. */
+function ferdig() {
+  return `
+  <div class="kol" style="gap:22px;height:100%;justify-content:center;align-items:center;text-align:center">
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 6 9 17l-5-5"/>
+    </svg>
+    <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15">Takk for at du bidro</div>
+    <div style="font-size:15.5px;color:#9a9a9a;line-height:1.55;max-width:280px">Målingene dine er en del av datagrunnlaget i masteroppgaven om hva det koster en AI å lese nettsider.</div>
+    <div style="font-size:14px;color:#5a5a5a;line-height:1.5;max-width:280px">Ta gjerne en titt på storskjermen — tallene dine er allerede med der.</div>
+    <div class="btn-ghost" data-handling="påNytt" style="margin-top:14px;padding:0 26px"><span style="font-size:16px;color:#6b6b6b">Start på nytt</span></div>
   </div>`;
 }
 
