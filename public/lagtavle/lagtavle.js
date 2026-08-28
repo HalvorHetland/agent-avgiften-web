@@ -20,6 +20,9 @@ const NAVN = { halvor: "Halvor", gjermund: "Gjermund" };
 let T = null;        // booth_totals
 let STASJ = [];      // stasjon_totaler
 let LINJE = [];      // tidslinje, kvarter for kvarter
+/* Felles energipott: Gjermunds `event_totals`, som begge stasjonene legger inn
+ * i via `increment_totals`. Dette er tallet lagtavla skal vise. */
+let FELLES = null;
 let forrige = {};
 
 const sep = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -33,15 +36,17 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, s, b] = await Promise.all([
+    const [t, s, b, f] = await Promise.all([
       db.from("booth_totals").select("*").single(),
       db.from("stasjon_totaler").select("*"),
       db.from("tidslinje").select("*"),
+      db.from("event_totals").select("*").maybeSingle(),
     ]);
     if (t.error) throw t.error;
     T = t.data;
     STASJ = s.data ?? [];
     LINJE = b.data ?? [];
+    FELLES = f.data ?? null;
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     document.getElementById("frakoblet").classList.add("vis");
@@ -129,7 +134,10 @@ function tegn() {
   const kall = T ? Number(T.kall) : 0;
   const joules = T ? Number(T.joules) : 0;
   const wh = joules / 3600;
-  const aiWh = kall * 0.24;
+  // Felles pott når den finnes; ellers vår egen andel. Potten dekker begge
+  // stasjonene, og det er den lagtavla handler om.
+  const aiWh = FELLES ? Number(FELLES.total_energy_wh) : kall * 0.24;
+  const vannL = FELLES ? Number(FELLES.total_water_l) : kall * 0.00026;
   const dekning = aiWh > 0 ? (wh / aiWh) * 100 : 0;
   // Sveivehalvdelen bygges av Gjermund. Før den skriver til crank_runs skal
   // skjermen si at tallet mangler, ikke vise 0 % som om rommet hadde sveivet.
@@ -201,7 +209,7 @@ function tegn() {
       ${arealdiagram(1166, 300)}
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5;margin-top:-4px">
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
-        har laget selv — resten er kjøpt.
+        har laget selv — resten er kjøpt.${FELLES ? " Kurven dekker det som er logget i <span class='mono'>ai_runs</span>; totalen til venstre er den felles potten." : ""}
       </div>
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
@@ -217,8 +225,12 @@ function tegn() {
           <div class="statNavn">sveivet, samlet</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
-          <div class="statNavn">brukt, antatt gulv</div>
+          <div class="mono disp statTall${nytt("aiWh", Math.round(aiWh * 10))}" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
+          <div class="statNavn">brukt${FELLES ? " — felles pott" : ", antatt gulv"}</div>
+        </div>
+        <div class="stat">
+          <div class="mono disp statTall" style="color:#fb923c">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
+          <div class="statNavn">vann til kjøling</div>
         </div>
       </div>
     </div>
