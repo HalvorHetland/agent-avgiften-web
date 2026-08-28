@@ -24,7 +24,10 @@ const db = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
 
 // Telefonens adresse — QR-koden peker hit. Overstyr med ?telefon=...
 const params = new URLSearchParams(location.search);
-const TELEFON_URL = params.get("telefon") || location.origin + "/";
+// Nettstedet kan ligge under en sti (GitHub Pages: /agent-avgiften-web/),
+// så vi regner oss opp fra /skjerm/ i stedet for å anta domenerota.
+const TELEFON_URL = params.get("telefon")
+  || location.origin + location.pathname.replace(/skjerm\/.*$/, "");
 
 const JOULE_PER_SPM = 864;   // 0,24 Wh, etterprøvd mot arXiv:2508.15734
 const MAAL_JOULE = 8640;     // ti spørsmål
