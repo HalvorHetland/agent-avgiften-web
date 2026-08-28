@@ -1,0 +1,8 @@
+{
+  "name": "agent-avgiften-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telefonflyt og storskjerm for standen Agent-avgiften",
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node server.js" }
+}

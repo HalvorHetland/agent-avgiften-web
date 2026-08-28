@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="robots" content="noindex">
+<title>Agent-avgiften</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:#0a0a0a;color:#ededed;
+    font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Helvetica,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+  }
+  a{color:#4ade80}
+  a:hover{color:#86efac}
+
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+  .disp{font-family:"Space Grotesk","IBM Plex Sans",system-ui,sans-serif;letter-spacing:-0.02em}
+  .lbl{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6b6b;font-weight:600}
+  .kol{display:flex;flex-direction:column}
+
+  .chip{padding:13px 18px;border-radius:999px;font-size:16px;cursor:pointer;border:1px solid #303030;background:#161616;color:#cfcfcf;
+        -webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s,color .12s}
+  .chip-on{border-color:#f97316;background:#1d1309;color:#fb923c}
+
+  .btn{display:flex;align-items:center;justify-content:center;height:60px;background:#4f46e5;border-radius:12px;cursor:pointer;
+       -webkit-tap-highlight-color:transparent;transition:opacity .12s,transform .06s}
+  .btn:active{transform:scale(.985)}
+  .btn-ghost{display:flex;align-items:center;justify-content:center;height:52px;border:1px solid #3d3d3d;border-radius:12px;cursor:pointer;
+             -webkit-tap-highlight-color:transparent}
+
+  .svar{display:flex;align-items:center;padding:19px 20px;background:#111;border:1px solid #303030;border-radius:12px;
+        font-size:17px;color:#ededed;cursor:pointer;line-height:1.35;
+        -webkit-tap-highlight-color:transparent;transition:border-color .12s,background .12s}
+  .svar:active{border-color:#4f46e5;background:#141428}
+
+  .fin{font-size:12.5px;color:#5a5a5a;line-height:1.45}
+
+  /* Framdrift mens begge kallene går. Ubestemt med vilje: vi vet ikke hvor
+     lenge en 192k-tokens side tar, og en falsk prosent ville vært et tall vi
+     ikke har målt. */
+  .skyv{width:40%;animation:skyv 1.5s ease-in-out infinite}
+  @keyframes skyv{0%{margin-left:-40%}100%{margin-left:100%}}
+  @media (prefers-reduced-motion:reduce){.skyv{animation:none;width:100%;opacity:.5}}
+
+  #app{
+    width:100%;max-width:430px;margin:0 auto;
+    min-height:100%;
+    padding:calc(32px + env(safe-area-inset-top)) 26px calc(28px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;
+  }
+  #app > div{flex:1;min-height:0}
+
+  textarea::placeholder{color:#5a5a5a}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="./config.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
