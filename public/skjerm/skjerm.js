@@ -110,6 +110,9 @@ function tallene() {
     sveiveoekter: T ? Number(T.sveiveoekter) : 0,
     kuttede: T ? Number(T.kuttede_kall) : 0,
     raa_tegn: T ? Number(T.raa_tegn) : 0,
+    // Sveivehalvdelen bygges av medstudenten. Før den finnes skal skjermen si
+    // det, ikke vise 0 J og 0 % som om rommet hadde sveivet og fått ingenting.
+    ingenSveiv: !T || Number(T.sveiveoekter) === 0,
     brukt: T ? Number(T.brukt_usd) : 0,
     budsjett: T ? Number(T.budsjett_usd) : 0,
   };
@@ -312,12 +315,18 @@ function tegn() {
     </div>
 
     <div class="kort kol" style="width:470px;flex-shrink:0;gap:16px;padding:28px 30px;border-color:#1e3a24">
-      <div class="lbl" style="color:#4ade80">Dere har sveivet</div>
+      <div class="lbl" style="color:#4ade80">${d.ingenSveiv ? "Sveiva" : "Dere har sveivet"}</div>
+      ${d.ingenSveiv ? `
+      <div class="kol" style="gap:10px;flex-grow:1;justify-content:center">
+        <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15;color:#6b6b6b">Ikke koblet til enda</div>
+        <div style="font-size:17px;color:#5a5a5a;line-height:1.5">Denne halvdelen bygges nå. Her kommer joulene rommet lager for hånd, i sanntid.</div>
+        <div class="fin" style="font-size:14px;color:#4a4a4a;margin-top:6px">Vi viser ikke et tall vi ikke har målt.</div>
+      </div>` : `
       <div style="display:flex;align-items:baseline;gap:12px">
         <div class="mono disp${nytt("joules", d.joules)}" style="font-size:64px;font-weight:500;line-height:0.9;color:#4ade80">${sep(d.joules)}</div>
         <div style="font-size:20px;color:#9a9a9a">joule</div>
-      </div>
-      <div class="kol" style="gap:10px">
+      </div>`}
+      <div class="kol" style="gap:10px;display:${d.ingenSveiv ? "none" : "flex"}">
         <div style="display:flex;justify-content:space-between;align-items:baseline">
           <span style="font-size:17px;color:#9a9a9a">Siste økt</span>
           <span class="mono" style="font-size:17px">${sisteTekst}</span>
@@ -325,7 +334,7 @@ function tegn() {
         <div style="display:flex;align-items:flex-end;gap:5px;height:104px">${soyler}</div>
         <div style="font-size:15px;color:#6b6b6b">siste tolv økter</div>
       </div>
-      <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
+      <div style="display:${d.ingenSveiv ? "none" : "flex"};margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall${nytt("oekter", d.sveiveoekter)}">${sep(d.sveiveoekter)}</div>
           <div class="statNavn">som har sveivet</div>
@@ -348,12 +357,14 @@ function tegn() {
 
   <div style="display:flex;align-items:center;gap:34px;padding:24px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
     <div class="kol" style="gap:5px;flex-shrink:0">
-      <div class="mono disp" style="font-size:50px;font-weight:500;line-height:1;color:#fbbf24">${d.dekning > 0 && d.dekning < 1 ? komma(d.dekning) : Math.round(d.dekning)} %</div>
+      <div class="mono disp" style="font-size:50px;font-weight:500;line-height:1;color:${d.ingenSveiv ? "#5a5a5a" : "#fbbf24"}">${d.ingenSveiv ? "—" : (d.dekning > 0 && d.dekning < 1 ? komma(d.dekning) : Math.round(d.dekning)) + " %"}</div>
       <div style="font-size:17px;color:#9a9a9a">av strømmen er sveivet inn</div>
     </div>
     <div style="width:1px;align-self:stretch;background:#282828"></div>
     <div class="kol" style="gap:6px;flex-grow:1">
-      <div style="font-size:20px;color:#ededed;line-height:1.45">Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — nok til de ti neste spørsmålene. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.</div>
+      <div style="font-size:20px;color:#ededed;line-height:1.45">${d.ingenSveiv
+        ? "Sveiva er ikke koblet til enda, så dekningen er ikke målt. Tokentallene til venstre er ekte."
+        : `Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — nok til de ti neste spørsmålene. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.`}</div>
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Våre råe spørsmål er mye større enn en median forespørsel, så dette er et gulv, ikke et estimat.</div>
     </div>
     <div class="kol" style="gap:5px;flex-shrink:0;align-items:flex-end;padding-left:26px;border-left:1px solid #282828">

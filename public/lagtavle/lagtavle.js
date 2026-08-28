@@ -15,7 +15,7 @@ const JOULE_PER_SPM = 864;    // 0,24 Wh, etterprøvd mot arXiv:2508.15734
 const MAAL_JOULE = 8640;      // ti spørsmål
 
 // Stasjonsnavnene i basen er tekniske; dette er det som står på skjermen.
-const NAVN = { halvor: "Halvor", medstudent: "Medstudent" };
+const NAVN = { halvor: "Halvor", gjermund: "Gjermund" };
 
 let T = null;        // booth_totals
 let STASJ = [];      // stasjon_totaler
@@ -77,6 +77,7 @@ function arealdiagram(bredde, hoyde) {
     kart.set(t, f);
   }
   const punkter = [...kart.values()].sort((a, b) => a.t - b.t);
+  const harSveiv = punkter.some((p) => p.joules > 0);
   if (punkter.length < 2) {
     return `<div style="height:${hoyde}px;display:flex;align-items:center;justify-content:center;color:#5a5a5a;font-size:18px">
       Diagrammet tegner seg når standen har vært i gang en stund.</div>`;
@@ -119,6 +120,8 @@ function arealdiagram(bredde, hoyde) {
     <text x="${P.v}" y="${hoyde - 7}" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(serie[0].t)}</text>
     <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(serie[serie.length - 1].t)}</text>
     <text x="${P.v - 9}" y="${P.t - 2}" text-anchor="end" fill="#5a5a5a" font-size="12" font-family="IBM Plex Sans, sans-serif">Wh</text>
+    ${harSveiv ? "" : `<text x="${P.v + 16}" y="${P.t + ih / 2}" fill="#6b6b6b" font-size="17"
+      font-family="IBM Plex Sans, sans-serif">Grønt bånd kommer når sveiva er koblet til</text>`}
   </svg>`;
 }
 
@@ -128,6 +131,9 @@ function tegn() {
   const wh = joules / 3600;
   const aiWh = kall * 0.24;
   const dekning = aiWh > 0 ? (wh / aiWh) * 100 : 0;
+  // Sveivehalvdelen bygges av Gjermund. Før den skriver til crank_runs skal
+  // skjermen si at tallet mangler, ikke vise 0 % som om rommet hadde sveivet.
+  const ingenSveiv = !T || Number(T.sveiveoekter) === 0;
 
   // Målet fylles opp på nytt for hver runde på ti spørsmål.
   const iRunden = joules % MAAL_JOULE;
@@ -138,7 +144,7 @@ function tegn() {
 
   // Begge stasjonene vises alltid, også før den ene har fått noen innom —
   // en tom rad er et ærligere bilde enn en skjult.
-  const rader = ["halvor", "medstudent"].map((id) => {
+  const rader = ["halvor", "gjermund"].map((id) => {
     const r = STASJ.find((x) => x.stasjon === id);
     return { navn: NAVN[id], tokens: r ? Number(r.tokens_raa) : 0, spm: r ? Number(r.spoersmaal) : 0 };
   });
@@ -162,7 +168,7 @@ function tegn() {
     <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Klarer dere å sveive inn like mye som vi bruker?</div>
   </div>
 
-  <div class="kol" style="gap:12px;padding:22px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0">
+  <div class="kol" style="gap:12px;padding:22px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv ? "none" : "flex"}">
     <div style="display:flex;justify-content:space-between;align-items:baseline">
       <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ti spørsmål</span>
       <span class="mono disp${nytt("iRunden", Math.round(iRunden))}" style="font-size:30px;font-weight:500;color:#4ade80">${sep(iRunden)} <span style="font-size:20px;color:#6b6b6b">/ ${sep(MAAL_JOULE)} J</span></span>
@@ -239,10 +245,12 @@ function tegn() {
   </div>
 
   <div style="display:flex;align-items:center;gap:30px;padding:20px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
-    <div class="mono disp" style="font-size:48px;font-weight:500;line-height:1;color:#fbbf24;flex-shrink:0">${dekning > 0 && dekning < 1 ? komma(dekning) : Math.round(dekning)} %</div>
+    <div class="mono disp" style="font-size:48px;font-weight:500;line-height:1;color:${ingenSveiv ? "#5a5a5a" : "#fbbf24"};flex-shrink:0">${ingenSveiv ? "—" : (dekning > 0 && dekning < 1 ? komma(dekning) : Math.round(dekning)) + " %"}</div>
     <div class="kol" style="gap:5px;flex-grow:1">
       <div style="font-size:20px;color:#ededed;line-height:1.45">${
-        dekning >= 100
+        ingenSveiv
+          ? "Sveiva er ikke koblet til enda. Tokentallene er ekte målinger; dekningen kommer når sveivesiden skriver til crank_runs."
+        : dekning >= 100
           ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
           : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
       }</div>
