@@ -25,7 +25,10 @@
   /* Designet er tegnet for nøyaktig 1920x1080. Vi beholder de målene og
      skalerer hele flata, slik at skjermen ser lik ut på en projektor med
      annen oppløsning uten at noe layout må regnes om. */
-  #scene{width:1920px;height:1080px;transform-origin:top left;flex-shrink:0}
+  /* #scene er innpakningen og får de skalerte målene; #rot er det som faktisk
+     skaleres. Å sette både width og transform på samme element skalerer to
+     ganger — flata ble 1333px bred i stedet for 1600. */
+  #scene{transform-origin:top left;flex-shrink:0;overflow:hidden}
 
   #rot{
     width:1920px;height:1080px;padding:56px 64px;

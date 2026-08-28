@@ -279,9 +279,13 @@ function tegn() {
 function skaler() {
   const s = Math.min(innerWidth / 1920, innerHeight / 1080);
   const scene = document.getElementById("scene");
-  scene.style.transform = `scale(${s})`;
-  scene.style.width = 1920 * s + "px";
-  scene.style.height = 1080 * s + "px";
+  const rot = document.getElementById("rot");
+  // transform endrer ikke layoutboksen, så innpakningen må få de skalerte
+  // målene mens innholdet skaleres. Ett element kan ikke gjøre begge deler.
+  rot.style.transformOrigin = "top left";
+  rot.style.transform = `scale(${s})`;
+  scene.style.width = Math.round(1920 * s) + "px";
+  scene.style.height = Math.round(1080 * s) + "px";
 }
 addEventListener("resize", skaler);
 skaler();
