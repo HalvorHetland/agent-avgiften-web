@@ -159,16 +159,22 @@ function tegn() {
   const total = rader.reduce((a, r) => a + r.tokens, 0);
   const maksRad = Math.max(...rader.map((r) => r.tokens), 1);
 
+  // En stasjon uten rader har ikke nødvendigvis hatt null besøkende — den kan
+  // logge et annet sted. Gjermund kjører sin egen kodesti mot gpt-5, så til
+  // han skriver til ai_runs skal skjermen si «logger ikke hit», ikke «0».
   const stolper = rader.map((r, i) => `
     <div class="kol" style="gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:baseline">
         <span style="font-size:21px;color:#ededed">${r.navn}</span>
-        <span class="mono" style="font-size:20px;color:#fb923c">${sep(r.tokens)}<span style="font-size:15px;color:#6b6b6b"> · ${r.spm} spm</span></span>
+        ${r.spm === 0
+          ? `<span style="font-size:16px;color:#5a5a5a">logger ikke hit enda</span>`
+          : `<span class="mono" style="font-size:20px;color:#fb923c">${sep(r.tokens)}<span style="font-size:15px;color:#6b6b6b"> · ${r.spm} spm</span></span>`}
       </div>
       <div style="height:34px;background:#1c1c1c;border-radius:6px;overflow:hidden">
-        <div style="width:${(r.tokens / maksRad) * 100}%;height:100%;background:${i === 0 ? "#f97316" : "#c2540f"}"></div>
+        <div style="width:${r.spm === 0 ? 0 : (r.tokens / maksRad) * 100}%;height:100%;background:${i === 0 ? "#f97316" : "#c2540f"}"></div>
       </div>
     </div>`).join("");
+  const manglerStasjon = rader.some((r) => r.spm === 0);
 
   document.getElementById("rot").innerHTML = `
   <div class="kol" style="gap:9px;align-items:center;flex-shrink:0">
@@ -236,13 +242,17 @@ function tegn() {
     </div>
 
     <div class="kort kol" style="width:540px;flex-shrink:0;gap:16px;padding:26px 30px;border-color:#3a2412">
-      <div class="lbl" style="color:#f97316;font-size:15px">Tokens brukt — begge stasjonene</div>
+      <div class="lbl" style="color:#f97316;font-size:15px">Tokens brukt${manglerStasjon ? " — logget her" : " — begge stasjonene"}</div>
       <div class="mono disp${nytt("total", total)}" style="font-size:58px;font-weight:500;line-height:0.92;color:#f97316">${sep(total)}</div>
       <div class="kol" style="gap:15px;margin-top:2px">${stolper}</div>
       <div style="font-size:16px;color:#cfcfcf;line-height:1.5;margin-top:6px">
         Sveiva vet ikke hvem som sveiver. Alt går i samme pott — den er lagets,
         ikke stasjonens.
       </div>
+      ${manglerStasjon ? `<div style="font-size:14px;color:#5a5a5a;line-height:1.45">
+        Stasjonene kjører hver sin modell. Tokentall fra to tokenizere kan ikke
+        summeres til ett tall — forholdstallene tåler det, absoluttene ikke.
+      </div>` : ""}
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall">${sep(T ? T.spoersmaal : 0)}</div>
