@@ -138,6 +138,18 @@ function tegn() {
   // stasjonene, og det er den lagtavla handler om.
   const aiWh = FELLES ? Number(FELLES.total_energy_wh) : kall * 0.24;
   const vannL = FELLES ? Number(FELLES.total_water_l) : kall * 0.00026;
+
+  /* Del potten på de to stasjonene.
+   *
+   * Vår andel er eksakt: Edge-funksjonen legger inn 0,24 Wh per kall, og
+   * `kall` er antall rader i ai_runs. Resten er Gjermunds — han sender sine
+   * EcoLogits-summer inn i den samme potten fra chatbot-eksperimentet sitt.
+   *
+   * De to andelene er regnet med hver sin metode. Det står på skjermen; å
+   * skjule det ville gjort tallet penere og mindre sant. */
+  const vaarWh = kall * 0.24;
+  const hansWh = Math.max(0, aiWh - vaarWh);
+  const maksWh = Math.max(vaarWh, hansWh, 0.001);
   const dekning = aiWh > 0 ? (wh / aiWh) * 100 : 0;
   // Sveivehalvdelen bygges av Gjermund. Før den skriver til crank_runs skal
   // skjermen si at tallet mangler, ikke vise 0 % som om rommet hadde sveivet.
@@ -217,6 +229,26 @@ function tegn() {
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
         har laget selv — resten er kjøpt.${FELLES ? " Kurven dekker det som er logget i <span class='mono'>ai_runs</span>; totalen til venstre er den felles potten." : ""}
       </div>
+      ${FELLES ? `<div class="kol" style="gap:9px;padding:14px 16px;background:#0e0e0e;border:1px solid #282828;border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:16px;color:#ededed">Halvor — nettsidelesing</span>
+          <span class="mono" style="font-size:17px;color:#fb923c">${komma(vaarWh, 2)} Wh</span>
+        </div>
+        <div style="height:12px;background:#1c1c1c;border-radius:4px;overflow:hidden">
+          <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#f97316"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px">
+          <span style="font-size:16px;color:#ededed">Gjermund — chatbot</span>
+          <span class="mono" style="font-size:17px;color:#a78bfa">${komma(hansWh, 2)} Wh</span>
+        </div>
+        <div style="height:12px;background:#1c1c1c;border-radius:4px;overflow:hidden">
+          <div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div>
+        </div>
+        <div style="font-size:13px;color:#5a5a5a;line-height:1.45;margin-top:4px">
+          Halvor: 0,24 Wh per forespørsel (Google 2025). Gjermund: EcoLogits på
+          gpt-5. To metoder — summen er et anslag, ikke én måling.
+        </div>
+      </div>` : ""}
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall${nytt("joules", joules)}" style="color:#4ade80">${sep(joules)}</div>
