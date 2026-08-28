@@ -21,6 +21,7 @@ let LINJE = [];      // tidslinje, kvarter for kvarter
 /* Felles energipott: Gjermunds `event_totals`, som begge stasjonene legger inn
  * i via `increment_totals`. Dette er tallet lagtavla skal vise. */
 let FELLES = null;
+let FORLOEP = [];    // felles pott gjennom dagen, logget ved hver endring
 let forrige = {};
 
 const sep = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -34,15 +35,17 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, b, f] = await Promise.all([
+    const [t, b, f, h] = await Promise.all([
       db.from("booth_totals").select("*").single(),
       db.from("tidslinje").select("*"),
+      db.from("energi_forloep").select("*"),
       db.from("event_totals").select("*").maybeSingle(),
     ]);
     if (t.error) throw t.error;
     T = t.data;
     LINJE = b.data ?? [];
     FELLES = f.data ?? null;
+    FORLOEP = h.data ?? [];
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     document.getElementById("frakoblet").classList.add("vis");
@@ -69,38 +72,47 @@ hent();
  * klipper det, og bunnstripa sier fra at dekningen er over hundre.
  */
 function arealdiagram(bredde, hoyde) {
-  // Slå sammen de to kildene per kvarter og akkumuler.
-  const kart = new Map();
-  for (const r of LINJE) {
-    const t = new Date(r.bolk).getTime();
-    const f = kart.get(t) || { t, kall: 0, joules: 0 };
-    f.kall += Number(r.kall); f.joules += Number(r.joules);
-    kart.set(t, f);
-  }
-  const punkter = [...kart.values()].sort((a, b) => a.t - b.t);
-  const harSveiv = punkter.some((p) => p.joules > 0);
-  if (punkter.length < 2) {
+  // Den oransje kurven er den FELLES potten, logget ved hver endring — både
+  // våre kall og Gjermunds chatbot-økter. Den grønne er sveivet energi,
+  // akkumulert fra crank_runs. Begge i Wh, som er poenget: nå deler vi enhet.
+  if (FORLOEP.length < 2) {
     return `<div style="height:${hoyde}px;display:flex;align-items:center;justify-content:center;color:#5a5a5a;font-size:18px">
       Diagrammet tegner seg når standen har vært i gang en stund.</div>`;
   }
 
-  let kall = 0, joules = 0;
-  const serie = punkter.map((p) => {
-    kall += p.kall; joules += p.joules;
-    return { t: p.t, brukt: kall * 0.24, sveivet: joules / 3600 };  // Wh
+  // Sveiving per kvarter, akkumulert, som oppslag på tid.
+  const sveiv = [];
+  let sum = 0;
+  for (const r of [...LINJE].sort((a, b) => new Date(a.bolk) - new Date(b.bolk))) {
+    sum += Number(r.joules) / 3600;                       // joule -> Wh
+    sveiv.push({ t: new Date(r.bolk).getTime(), wh: sum });
+  }
+  const sveivetVed = (t) => {
+    let v = 0;
+    for (const p of sveiv) { if (p.t <= t) v = p.wh; else break; }
+    return v;
+  };
+
+  const serie = FORLOEP.map((r) => {
+    const t = new Date(r.t).getTime();
+    return { t, brukt: Number(r.total_energy_wh), sveivet: sveivetVed(t) };
   });
+  const harSveiv = serie.some((p) => p.sveivet > 0);
 
   const maks = Math.max(...serie.map((s) => s.brukt), 0.001);
-  const P = { v: 62, h: 18, t: 14, b: 26 };            // marger
+  const P = { v: 62, h: 18, t: 14, b: 26 };
   const iw = bredde - P.v - P.h, ih = hoyde - P.t - P.b;
-  const x = (i) => P.v + (i / (serie.length - 1)) * iw;
+  // Tidsakse, ikke jevne steg: loggen kommer ujevnt, og en jevn akse ville
+  // strukket rolige perioder like brede som travle.
+  const t0 = serie[0].t, t1 = serie[serie.length - 1].t;
+  const spenn = Math.max(1, t1 - t0);
+  const x = (t) => P.v + ((t - t0) / spenn) * iw;
   const y = (wh) => P.t + ih - (Math.min(wh, maks) / maks) * ih;
 
-  const topp = serie.map((s, i) => `${x(i)},${y(s.brukt)}`).join(" ");
-  const skille = serie.map((s, i) => `${x(i)},${y(Math.min(s.sveivet, s.brukt))}`).join(" ");
-  const bunn = `${x(serie.length - 1)},${y(0)} ${x(0)},${y(0)}`;
+  const topp = serie.map((s) => `${x(s.t)},${y(s.brukt)}`).join(" ");
+  const skille = serie.map((s) => `${x(s.t)},${y(Math.min(s.sveivet, s.brukt))}`).join(" ");
+  const bunn = `${x(t1)},${y(0)} ${x(t0)},${y(0)}`;
 
-  // Rutenett med Wh-verdier, så arealene kan leses som tall og ikke bare form.
   const linjer = [0, 0.25, 0.5, 0.75, 1].map((f) => {
     const wh = maks * f;
     return `<line x1="${P.v}" y1="${y(wh)}" x2="${bredde - P.h}" y2="${y(wh)}" stroke="#1c1c1c" stroke-width="1"/>
@@ -112,14 +124,14 @@ function arealdiagram(bredde, hoyde) {
 
   return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="100%" height="${hoyde}"
       preserveAspectRatio="xMidYMid meet" role="img"
-      aria-label="Stablet areal: AI-energi brukt, delt i dekket av sveiving og udekket">
+      aria-label="Stablet areal: felles AI-energi, delt i dekket av sveiving og udekket">
     ${linjer}
     <polygon points="${skille} ${topp.split(" ").reverse().join(" ")}" fill="#f97316" fill-opacity="0.85"/>
     <polygon points="${skille} ${bunn}" fill="#4ade80" fill-opacity="0.9"/>
     <polyline points="${topp}" fill="none" stroke="#fb923c" stroke-width="2"/>
-    <polyline points="${skille}" fill="none" stroke="#86efac" stroke-width="2"/>
-    <text x="${P.v}" y="${hoyde - 7}" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(serie[0].t)}</text>
-    <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(serie[serie.length - 1].t)}</text>
+    ${harSveiv ? `<polyline points="${skille}" fill="none" stroke="#86efac" stroke-width="2"/>` : ""}
+    <text x="${P.v}" y="${hoyde - 7}" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t0)}</text>
+    <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t1)}</text>
     <text x="${P.v - 9}" y="${P.t - 2}" text-anchor="end" fill="#5a5a5a" font-size="12" font-family="IBM Plex Sans, sans-serif">Wh</text>
     ${harSveiv ? "" : `<text x="${P.v + 16}" y="${P.t + ih / 2}" fill="#6b6b6b" font-size="17"
       font-family="IBM Plex Sans, sans-serif">Grønt bånd kommer når sveiva er koblet til</text>`}
@@ -198,7 +210,7 @@ function tegn() {
       ${arealdiagram(1166, 300)}
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5;margin-top:-4px">
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
-        har laget selv — resten er kjøpt.${FELLES ? " Kurven dekker det som er logget i <span class='mono'>ai_runs</span>; totalen til venstre er den felles potten." : ""}
+        har laget selv — resten er kjøpt.${FELLES ? " Kurven er den felles potten — begge stasjonene." : ""}
       </div>
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
