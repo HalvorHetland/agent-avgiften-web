@@ -13,12 +13,10 @@ const db = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
 
 const JOULE_PER_SPM = 864;    // 0,24 Wh, etterprøvd mot arXiv:2508.15734
 const MAAL_JOULE = 8640;      // ti spørsmål
-
-// Stasjonsnavnene i basen er tekniske; dette er det som står på skjermen.
-const NAVN = { halvor: "Halvor", gjermund: "Gjermund" };
+const MOBIL_WH = 12;          // et mobilbatteri, som i designet
+const GLASS_ML = 200;         // et glass vann
 
 let T = null;        // booth_totals
-let STASJ = [];      // stasjon_totaler
 let LINJE = [];      // tidslinje, kvarter for kvarter
 /* Felles energipott: Gjermunds `event_totals`, som begge stasjonene legger inn
  * i via `increment_totals`. Dette er tallet lagtavla skal vise. */
@@ -36,15 +34,13 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, s, b, f] = await Promise.all([
+    const [t, b, f] = await Promise.all([
       db.from("booth_totals").select("*").single(),
-      db.from("stasjon_totaler").select("*"),
       db.from("tidslinje").select("*"),
       db.from("event_totals").select("*").maybeSingle(),
     ]);
     if (t.error) throw t.error;
     T = t.data;
-    STASJ = s.data ?? [];
     LINJE = b.data ?? [];
     FELLES = f.data ?? null;
     document.getElementById("frakoblet").classList.remove("vis");
@@ -162,31 +158,6 @@ function tegn() {
   // ~40 W er det en person klarer å holde på en håndsveiv over tid.
   const sek = Math.round(mangler / 40);
 
-  // Begge stasjonene vises alltid, også før den ene har fått noen innom —
-  // en tom rad er et ærligere bilde enn en skjult.
-  const rader = ["halvor", "gjermund"].map((id) => {
-    const r = STASJ.find((x) => x.stasjon === id);
-    return { navn: NAVN[id], tokens: r ? Number(r.tokens_raa) : 0, spm: r ? Number(r.spoersmaal) : 0 };
-  });
-  const total = rader.reduce((a, r) => a + r.tokens, 0);
-  const maksRad = Math.max(...rader.map((r) => r.tokens), 1);
-
-  // En stasjon uten rader har ikke nødvendigvis hatt null besøkende — den kan
-  // logge et annet sted. Gjermund kjører sin egen kodesti mot gpt-5, så til
-  // han skriver til ai_runs skal skjermen si «logger ikke hit», ikke «0».
-  const stolper = rader.map((r, i) => `
-    <div class="kol" style="gap:8px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:21px;color:#ededed">${r.navn}</span>
-        ${r.spm === 0
-          ? `<span style="font-size:16px;color:#5a5a5a">logger ikke hit enda</span>`
-          : `<span class="mono" style="font-size:20px;color:#fb923c">${sep(r.tokens)}<span style="font-size:15px;color:#6b6b6b"> · ${r.spm} spm</span></span>`}
-      </div>
-      <div style="height:34px;background:#1c1c1c;border-radius:6px;overflow:hidden">
-        <div style="width:${r.spm === 0 ? 0 : (r.tokens / maksRad) * 100}%;height:100%;background:${i === 0 ? "#f97316" : "#c2540f"}"></div>
-      </div>
-    </div>`).join("");
-  const manglerStasjon = rader.some((r) => r.spm === 0);
 
   document.getElementById("rot").innerHTML = `
   <div class="kol" style="gap:9px;align-items:center;flex-shrink:0">
@@ -229,26 +200,6 @@ function tegn() {
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
         har laget selv — resten er kjøpt.${FELLES ? " Kurven dekker det som er logget i <span class='mono'>ai_runs</span>; totalen til venstre er den felles potten." : ""}
       </div>
-      ${FELLES ? `<div class="kol" style="gap:9px;padding:14px 16px;background:#0e0e0e;border:1px solid #282828;border-radius:10px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:16px;color:#ededed">Halvor — nettsidelesing</span>
-          <span class="mono" style="font-size:17px;color:#fb923c">${komma(vaarWh, 2)} Wh</span>
-        </div>
-        <div style="height:12px;background:#1c1c1c;border-radius:4px;overflow:hidden">
-          <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#f97316"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:3px">
-          <span style="font-size:16px;color:#ededed">Gjermund — chatbot</span>
-          <span class="mono" style="font-size:17px;color:#a78bfa">${komma(hansWh, 2)} Wh</span>
-        </div>
-        <div style="height:12px;background:#1c1c1c;border-radius:4px;overflow:hidden">
-          <div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div>
-        </div>
-        <div style="font-size:13px;color:#5a5a5a;line-height:1.45;margin-top:4px">
-          Halvor: 0,24 Wh per forespørsel (Google 2025). Gjermund: EcoLogits på
-          gpt-5. To metoder — summen er et anslag, ikke én måling.
-        </div>
-      </div>` : ""}
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall${nytt("joules", joules)}" style="color:#4ade80">${sep(joules)}</div>
@@ -274,25 +225,46 @@ function tegn() {
     </div>
 
     <div class="kort kol" style="width:540px;flex-shrink:0;gap:16px;padding:26px 30px;border-color:#3a2412">
-      <div class="lbl" style="color:#f97316;font-size:15px">Tokens brukt${manglerStasjon ? " — logget her" : " — begge stasjonene"}</div>
-      <div class="mono disp${nytt("total", total)}" style="font-size:58px;font-weight:500;line-height:0.92;color:#f97316">${sep(total)}</div>
-      <div class="kol" style="gap:15px;margin-top:2px">${stolper}</div>
-      <div style="font-size:16px;color:#cfcfcf;line-height:1.5;margin-top:6px">
-        Sveiva vet ikke hvem som sveiver. Alt går i samme pott — den er lagets,
-        ikke stasjonens.
+      <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt — begge stasjonene</div>
+      <div style="display:flex;align-items:baseline;gap:12px">
+        <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:58px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
+        <div style="font-size:20px;color:#9a9a9a">Wh</div>
       </div>
-      ${manglerStasjon ? `<div style="font-size:14px;color:#5a5a5a;line-height:1.45">
-        Stasjonene kjører hver sin modell. Tokentall fra to tokenizere kan ikke
-        summeres til ett tall — forholdstallene tåler det, absoluttene ikke.
-      </div>` : ""}
+
+      <div class="kol" style="gap:14px;margin-top:2px">
+        <div class="kol" style="gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:20px;color:#ededed">Halvor <span style="font-size:15px;color:#6b6b6b">— nettsidelesing</span></span>
+            <span class="mono" style="font-size:20px;color:#fb923c">${komma(vaarWh, 2)} Wh</span>
+          </div>
+          <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
+            <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#f97316"></div>
+          </div>
+        </div>
+        <div class="kol" style="gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:20px;color:#ededed">Gjermund <span style="font-size:15px;color:#6b6b6b">— chatbot</span></span>
+            <span class="mono" style="font-size:20px;color:#a78bfa">${komma(hansWh, 2)} Wh</span>
+          </div>
+          <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
+            <div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:14px;color:#5a5a5a;line-height:1.45;margin-top:2px">
+        Halvor: 0,24 Wh per forespørsel (Google 2025). Gjermund: EcoLogits på
+        gpt-5. To metoder — summen er et anslag, ikke én måling.
+      </div>
+
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
-          <div class="mono disp statTall">${sep(T ? T.spoersmaal : 0)}</div>
-          <div class="statNavn">spørsmål</div>
+          <div class="mono disp statTall">${komma(aiWh / MOBIL_WH, 1)}</div>
+          <div class="statNavn">mobilladinger</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall">${sep(kall)}</div>
-          <div class="statNavn">kall til modellen</div>
+          <div class="mono disp statTall">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
+          <div class="statNavn">vann, ${komma((vannL * 1000) / GLASS_ML, 1)} glass</div>
         </div>
       </div>
     </div>
