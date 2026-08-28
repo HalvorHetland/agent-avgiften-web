@@ -35,17 +35,22 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, b, f, h] = await Promise.all([
-      db.from("booth_totals").select("*").single(),
-      db.from("tidslinje").select("*"),
-      db.from("energi_forloep").select("*"),
-      db.from("event_totals").select("*").maybeSingle(),
-    ]);
-    if (t.error) throw t.error;
-    T = t.data;
-    LINJE = b.data ?? [];
-    FELLES = f.data ?? null;
-    FORLOEP = h.data ?? [];
+    // Navngitte felt, ikke posisjon: en ny spørring satt inn midt i lista
+    // byttet om FELLES og FORLOEP forrige gang, og skjermen ble svart.
+    const svar = Object.fromEntries(await Promise.all(
+      [
+        ["totaler", db.from("booth_totals").select("*").single()],
+        ["linje", db.from("tidslinje").select("*")],
+        ["felles", db.from("event_totals").select("*").maybeSingle()],
+        ["forloep", db.from("energi_forloep").select("*")],
+      ].map(async ([navn, q]) => [navn, await q]),
+    ));
+
+    if (svar.totaler.error) throw svar.totaler.error;
+    T = svar.totaler.data;
+    LINJE = Array.isArray(svar.linje.data) ? svar.linje.data : [];
+    FELLES = svar.felles.data ?? null;
+    FORLOEP = Array.isArray(svar.forloep.data) ? svar.forloep.data : [];
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     document.getElementById("frakoblet").classList.add("vis");
