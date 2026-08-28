@@ -270,8 +270,10 @@ function tegn() {
       </div>
 
       <div style="font-size:14px;color:#5a5a5a;line-height:1.45;margin-top:2px">
-        Halvor: 0,24 Wh per forespørsel (Google 2025). Gjermund: EcoLogits på
-        gpt-5. To metoder — summen er et anslag, ikke én måling.
+        Tokens er målt. Energi er det ikke — ingen leverandør oppgir joule per
+        forespørsel, så begge tallene er modeller: 0,24 Wh per forespørsel
+        (Google 2025) og EcoLogits på gpt-5, som selv oppgir et 95 %-intervall.
+        Sveiva er derimot ekte målt.
       </div>
 
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
@@ -297,7 +299,7 @@ function tegn() {
           ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
           : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
       }</div>
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel), et gulv og ikke et estimat. Det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
+      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er modellert — 0,24 Wh per forespørsel (Google, 2025, median tekstforespørsel), et gulv og ikke et estimat. Det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
     </div>
   </div>`;
 }
