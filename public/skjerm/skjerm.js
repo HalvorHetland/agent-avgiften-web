@@ -155,18 +155,24 @@ function enheter(d) {
   const vannMl = d.kall * ML_VANN_PER_KALL;
   const wh = d.kall * WH_PER_KALL;
 
+  // Timer blir uleselig over et døgn eller to. Døgn er lettere å ta inn.
   const lesetid = lesemin < 90
     ? `${Math.round(lesemin)} min`
-    : `${komma(lesemin / 60)} t`;
+    : lesemin < 60 * 48
+      ? `${komma(lesemin / 60)} t`
+      : `${komma(lesemin / 1440)} døgn`;
   const vann = vannMl < 1000
     ? `${komma(vannMl, 0)} mL`
     : `${komma(vannMl / 1000)} L`;
 
+  // Sider og lesetid beskriver sidene AI-en åpnet, i full størrelse — ikke
+  // bare det som fikk plass etter kutt. Etikettene må si det, ellers leses
+  // tallene som om de gjaldt det vi faktisk sendte.
   return [
-    { tall: sep(sider),   navn: "A4-sider tekst",   fin: "3 000 tegn per side" },
-    { tall: lesetid,      navn: "å lese for et menneske", fin: "~200 ord i minuttet" },
-    { tall: vann,         navn: "vann til kjøling", fin: "0,26 mL per forespørsel" },
-    { tall: komma(wh) + " Wh", navn: "strøm, som gulv", fin: "0,24 Wh per forespørsel" },
+    { tall: sep(sider),        navn: "A4-sider åpnet",          fin: "hele sidene, 3 000 tegn per side" },
+    { tall: lesetid,           navn: "å lese dem for et menneske", fin: "~200 ord i minuttet" },
+    { tall: vann,              navn: "vann til kjøling",        fin: "0,26 mL per forespørsel" },
+    { tall: komma(wh) + " Wh", navn: "strøm, som gulv",         fin: "0,24 Wh per forespørsel" },
   ];
 }
 
