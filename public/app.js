@@ -23,18 +23,44 @@ const params = new URLSearchParams(location.search);
 const STASJON = params.get("stasjon") === "medstudent" ? "medstudent" : "halvor";
 
 /* Speiler sider.ts i Edge-funksjonen. Funksjonen avviser alt annet, så denne
- * lista kan aldri utvide hva som faktisk hentes — den bestemmer bare hva
- * brikkene viser. Forslagene er testet mot ekte sider: begge armene må kunne
- * svare, ellers demonstrerer standen at den billige armen er dårligere. */
+ * lista kan aldri utvide hva som faktisk hentes eller spørres om.
+ *
+ * Aktiviteter i stedet for fritekst. Det koster ett datapunkt — hva studenter
+ * *ville* gjort på disse sidene — men gir tre ting igjen:
+ *
+ *   1. Sammenlignbarhet på tvers. Med fritekst er de to armene sammenlignbare
+ *      innad i én økt, men ikke mellom studenter. Nå kan du aggregere per
+ *      (side, aktivitet) og se spredningen i tokentall for samme spørsmål.
+ *   2. Ingen prompt-injeksjonsflate. Ingen tekst fra en besøkende når modellen.
+ *   3. Oppgaven kan vises på storskjermen. Handoffen forbød det fordi teksten
+ *      var fri; en fast liste er trygg å projisere.
+ *
+ * `nokkel` er det analysen grupperer på — teksten kan omformuleres uten at
+ * dataene brytes. Alle er testet mot ekte sider: begge armene må kunne svare,
+ * ellers demonstrerer standen at den billige armen er dårligere. */
 const SIDER = [
-  { navn: "posten.no", url: "https://www.posten.no/",
-    forslag: ["hva kan jeg gjøre her?", "hvordan sender jeg en pakke?"] },
-  { navn: "ruter.no", url: "https://ruter.no/",
-    forslag: ["hvordan kjøper jeg billett?", "hva kan jeg gjøre her?"] },
-  { navn: "oslo.kommune.no", url: "https://www.oslo.kommune.no/",
-    forslag: ["hva kan jeg gjøre her?", "hvordan søker jeg barnehageplass?"] },
-  { navn: "vy.no", url: "https://www.vy.no/",
-    forslag: ["når går neste tog?"] },
+  { navn: "posten.no", url: "https://www.posten.no/", aktiviteter: [
+    { nokkel: "posten_oversikt", tekst: "hva kan jeg gjøre her?" },
+    { nokkel: "posten_sende",    tekst: "hvordan sender jeg en pakke?" },
+    { nokkel: "posten_spore",    tekst: "hvordan sporer jeg en pakke?" },
+    { nokkel: "posten_flytte",   tekst: "hvordan melder jeg flytting?" },
+  ] },
+  { navn: "ruter.no", url: "https://ruter.no/", aktiviteter: [
+    { nokkel: "ruter_oversikt", tekst: "hva kan jeg gjøre her?" },
+    { nokkel: "ruter_billett",  tekst: "hvordan kjøper jeg billett?" },
+    { nokkel: "ruter_priser",   tekst: "hva koster det å reise?" },
+    { nokkel: "ruter_student",  tekst: "finnes det studentrabatt?" },
+  ] },
+  { navn: "oslo.kommune.no", url: "https://www.oslo.kommune.no/", aktiviteter: [
+    { nokkel: "oslo_oversikt",  tekst: "hva kan jeg gjøre her?" },
+    { nokkel: "oslo_barnehage", tekst: "hvordan søker jeg barnehageplass?" },
+    { nokkel: "oslo_kontakt",   tekst: "hvordan kontakter jeg kommunen?" },
+    { nokkel: "oslo_avfall",    tekst: "hvordan leverer jeg avfall?" },
+  ] },
+  { navn: "vy.no", url: "https://www.vy.no/", aktiviteter: [
+    { nokkel: "vy_oversikt", tekst: "hva kan jeg gjøre her?" },
+    { nokkel: "vy_tog",      tekst: "når går neste tog?" },
+  ] },
 ];
 
 const SP1 = "Har du tenkt på at AI-en må lese nettsider for å svare deg?";
@@ -52,6 +78,7 @@ function nyOkt() {
     steg: 0,
     side: SIDER[0],
     oppgave: "",
+    aktivitet: null,
     laster: false,
     resultat: null,   // { raa, rein }
     feil: null,       // { grunn, http_status, detalj }
@@ -158,7 +185,7 @@ async function spør() {
     station: STASJON,
     site_url: S.side.url,
     task_label: S.oppgave.trim(),
-    oppgave_kilde: S.oppgaveKilde ?? "fritekst",
+    oppgave_nokkel: S.aktivitet,
     variant,
   });
 
@@ -212,17 +239,9 @@ function tegn() {
   app().querySelectorAll("[data-handling]").forEach((el) => {
     el.onclick = () => HANDLINGER[el.dataset.handling](el);
   });
-  const ta = app().querySelector("#oppgave");
-  if (ta) {
-    ta.oninput = () => {
-      S.oppgave = ta.value.slice(0, 80);
-      S.oppgaveKilde = "fritekst";
-      const t = app().querySelector("#teller");
-      if (t) t.textContent = `${[...S.oppgave].length}/80`;
-      const k = app().querySelector("#spor");
-      if (k) k.style.opacity = S.oppgave.trim() ? "1" : "0.4";
-    };
-  }
+  // Oppgave-tekstboksen er borte; aktiviteten velges nå fra en liste.
+  // Sluttskjermens fritekst står igjen — den er frivillig og går ikke til
+  // modellen, bare til free_text.
   const fr = app().querySelector("#fritekst");
   if (fr) fr.oninput = () => { S.fritekst = fr.value.slice(0, 500); };
 }
@@ -236,14 +255,18 @@ const HANDLINGER = {
     skriv("holdninger", { session_id: S.session_id, runde: "etter", question_key: "sp2_ansvar", svar: el.dataset.verdi });
     S.steg = 5; tegn(); hentTotaler();
   },
-  velgSide(el) { S.side = SIDER[Number(el.dataset.i)]; tegn(); },
-  velgForslag(el) {
-    // Kilden lagres: handoffen sier friteksten er data i seg selv, og da må vi
-    // kunne skille de frie fra de valgte i analysen.
-    S.oppgave = el.dataset.tekst;
-    S.oppgaveKilde = "brikke";
+  velgSide(el) {
+    // Aktiviteten hører til siden. Bytter du side, må valget nullstilles,
+    // ellers sendes forrige sides spørsmål til en ny side.
+    S.aktivitet = null; S.oppgave = ""; S.side = SIDER[Number(el.dataset.i)]; tegn(); },
+  velgAktivitet(el) {
+    const a = S.side.aktiviteter.find((x) => x.nokkel === el.dataset.nokkel);
+    if (!a) return;
+    S.aktivitet = a.nokkel;
+    S.oppgave = a.tekst;
     tegn();
   },
+  ingenting() {},
   spor() { if (S.oppgave.trim()) { S.steg = 2; tegn(); spør(); } },
   prøvIgjen() { spør(); },
   sendFritekst() {
@@ -292,41 +315,41 @@ function s0() {
 }
 
 function s1() {
+  const valgt = S.aktivitet;
   return `
   <div class="kol" style="gap:19px;height:100%">
     <div class="kol" style="gap:8px">
       <div class="lbl" style="color:#f97316">Steg 1 av 3</div>
-      <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Velg en side, og si hva du vil gjøre der</div>
+      <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Velg en side, og hva du vil gjøre der</div>
     </div>
+
     <div class="kol" style="gap:10px">
       <div class="lbl">Side</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${SIDER.map((s, i) => `<div class="chip${s.url === S.side.url ? " chip-on" : ""}" data-handling="velgSide" data-i="${i}">${s.navn}</div>`).join("")}
+        ${SIDER.map((x, i) => `<div class="chip${x.url === S.side.url ? " chip-on" : ""}" data-handling="velgSide" data-i="${i}">${x.navn}</div>`).join("")}
       </div>
     </div>
-    <div class="kol" style="gap:9px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <div class="lbl">Hva vil du gjøre der?</div>
-        <div class="mono" id="teller" style="font-size:12px;color:#5a5a5a">${[...S.oppgave].length}/80</div>
-      </div>
-      <textarea id="oppgave" maxlength="80" placeholder="skriv med dine egne ord …"
-        style="width:100%;height:84px;resize:none;padding:15px 16px;background:#111;border:1px solid #4f46e5;border-radius:11px;color:#ededed;font-family:inherit;font-size:16px;line-height:1.45;outline:none">${esc(S.oppgave)}</textarea>
-    </div>
+
     <div class="kol" style="gap:10px">
-      <div class="lbl">Eller velg et forslag</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${S.side.forslag.map((f) => `<div class="chip${f === S.oppgave ? " chip-on" : ""}" data-handling="velgForslag" data-tekst="${esc(f)}">${f}</div>`).join("")}
+      <div class="lbl">Hva vil du gjøre?</div>
+      <div class="kol" style="gap:9px">
+        ${S.side.aktiviteter.map((a) => `
+          <div class="svar${valgt === a.nokkel ? " svar-on" : ""}" data-handling="velgAktivitet" data-nokkel="${a.nokkel}">
+            ${a.tekst}
+          </div>`).join("")}
       </div>
     </div>
-    <div class="btn" id="spor" data-handling="spor" style="margin-top:auto;opacity:${S.oppgave.trim() ? 1 : 0.4}">
-      <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Spør AI-en</span>
+
+    <div class="kol" style="gap:11px;margin-top:auto">
+      <div class="btn${valgt ? "" : " btn-av"}" data-handling="${valgt ? "spør" : "ingenting"}">
+        <span class="disp" style="font-size:19px;font-weight:700;color:${valgt ? "#fff" : "#5a5a5a"}">Mål begge versjonene</span>
+      </div>
+      <div class="fin">Samme spørsmål sendes to ganger: én gang med hele siden slik den er kodet, én gang med bare teksten.</div>
     </div>
+    ${køLinje()}
   </div>`;
 }
 
-/* s2 i designet er forklaringsskjermen mens kallet går. Den er derfor
- * lastetilstanden her: samme innhold, med en ekte framdriftslinje i stedet for
- * en statisk. */
 function laster() {
   return `
   <div class="kol" style="gap:17px;height:100%">
