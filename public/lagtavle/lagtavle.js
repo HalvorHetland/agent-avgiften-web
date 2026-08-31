@@ -13,8 +13,17 @@ const db = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
 
 const JOULE_PER_SPM = 864;    // 0,24 Wh, etterprøvd mot arXiv:2508.15734
 const MAAL_JOULE = 8640;      // ti spørsmål
-const MOBIL_WH = 12;          // et mobilbatteri, som i designet
-const GLASS_ML = 200;         // et glass vann
+/* Referanseverdiene leses fra basen, ikke hardkodes.
+ *
+ * 12 Wh sto i designfila og var aldri etterprøvd — det er kapasiteten til en
+ * eldre telefon, ikke energien en full lading trekker fra veggen. Gjermunds
+ * eksperiment brukte 11,0 for den samme sammenligningen, og hos ham avgjør
+ * verdien om en gjetning regnes som riktig. To utstillinger på samme event kan
+ * ikke oppgi to ulike svar på hvor mye en telefonlading er.
+ *
+ * Standardverdiene under gjelder bare til første henting. */
+let MOBIL_WH = 16;
+let GLASS_ML = 200;
 
 let T = null;        // booth_totals
 let LINJE = [];      // tidslinje, kvarter for kvarter
@@ -43,6 +52,7 @@ async function hent() {
         ["linje", db.from("tidslinje").select("*")],
         ["felles", db.from("event_totals").select("*").maybeSingle()],
         ["forloep", db.from("energi_forloep").select("*")],
+        ["konstanter", db.from("konstanter").select("*")],
       ].map(async ([navn, q]) => [navn, await q]),
     ));
 
@@ -51,6 +61,10 @@ async function hent() {
     LINJE = Array.isArray(svar.linje.data) ? svar.linje.data : [];
     FELLES = svar.felles.data ?? null;
     FORLOEP = Array.isArray(svar.forloep.data) ? svar.forloep.data : [];
+    for (const k of svar.konstanter.data ?? []) {
+      if (k.noekkel === "mobil_wh") MOBIL_WH = Number(k.verdi);
+      if (k.noekkel === "glass_ml") GLASS_ML = Number(k.verdi);
+    }
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     document.getElementById("frakoblet").classList.add("vis");
@@ -284,6 +298,7 @@ function tegn() {
         <div class="stat">
           <div class="mono disp statTall">${komma(aiWh / MOBIL_WH, 1)}</div>
           <div class="statNavn">mobilladinger til sammen</div>
+          <div style="font-size:12.5px;color:#4a4a4a;margin-top:2px">${komma(MOBIL_WH, 0)} Wh per full lading</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
