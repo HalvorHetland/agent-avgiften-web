@@ -132,6 +132,22 @@ async function hentTotaler() {
   } catch { /* frakoblet — boksen uteblir */ }
 }
 
+/* Frafall er data.
+ *
+ * En utstilling som mister folk på steg 3 er verdt å vite om når oppgaven skal
+ * skrives — og det ser man ikke av målingene, bare av hvem som ikke kom fram.
+ * Vi logger hvilket steg som ble nådd, aldri noe om personen. Feiler det, skal
+ * det ikke merkes: en tapt hendelse er bedre enn en avbrutt flyt. */
+const settSteg = new Set();
+function loggSteg(navn) {
+  if (settSteg.has(navn)) return;      // ett spor per steg per økt
+  settSteg.add(navn);
+  skriv("hendelser", {
+    session_id: S.session_id, station: STASJON,
+    slag: "steg", navn, detalj: { side: S.side?.navn ?? null },
+  });
+}
+
 // ────────────────────────────────────────────────────────────── AI-kallet
 
 async function spør() {
@@ -142,6 +158,7 @@ async function spør() {
     station: STASJON,
     site_url: S.side.url,
     task_label: S.oppgave.trim(),
+    oppgave_kilde: S.oppgaveKilde ?? "fritekst",
     variant,
   });
 
@@ -183,6 +200,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const app = () => document.getElementById("app");
 
 function tegn() {
+  if (S.session_id) loggSteg(`s${S.ferdig ? "ferdig" : S.steg}`);
   app().innerHTML = skjerm();
   app().querySelectorAll("[data-gaa]").forEach((el) => {
     el.onclick = () => {
@@ -198,6 +216,7 @@ function tegn() {
   if (ta) {
     ta.oninput = () => {
       S.oppgave = ta.value.slice(0, 80);
+      S.oppgaveKilde = "fritekst";
       const t = app().querySelector("#teller");
       if (t) t.textContent = `${[...S.oppgave].length}/80`;
       const k = app().querySelector("#spor");
@@ -218,7 +237,13 @@ const HANDLINGER = {
     S.steg = 5; tegn(); hentTotaler();
   },
   velgSide(el) { S.side = SIDER[Number(el.dataset.i)]; tegn(); },
-  velgForslag(el) { S.oppgave = el.dataset.tekst; tegn(); },
+  velgForslag(el) {
+    // Kilden lagres: handoffen sier friteksten er data i seg selv, og da må vi
+    // kunne skille de frie fra de valgte i analysen.
+    S.oppgave = el.dataset.tekst;
+    S.oppgaveKilde = "brikke";
+    tegn();
+  },
   spor() { if (S.oppgave.trim()) { S.steg = 2; tegn(); spør(); } },
   prøvIgjen() { spør(); },
   sendFritekst() {
