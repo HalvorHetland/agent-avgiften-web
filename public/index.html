@@ -86,11 +86,16 @@
 
   #app{
     width:100%;max-width:430px;margin:0 auto;
-    min-height:100%;
+    /* Nøyaktig skjermhøyde, ikke minst. Med min-height vokste #app forbi
+       vinduet, og da scrollet hele sida i stedet for at samtalen scrollet
+       internt — knappen havnet under folden. */
+    height:100%;
     padding:calc(32px + env(safe-area-inset-top)) 26px calc(28px + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;
   }
-  #app > div{flex:1;min-height:0}
+  /* Hver skjerm scroller i seg selv hvis den blir for høy. Skjermer som pinner
+     en knapp nederst har sitt eget scrollområde inni og treffer aldri denne. */
+  #app > div{flex:1;min-height:0;overflow-y:auto}
 
   textarea::placeholder{color:#5a5a5a}
 </style>
