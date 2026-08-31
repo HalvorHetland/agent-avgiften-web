@@ -103,10 +103,23 @@ function tallene() {
   // Bare våre egne kall. Den felles potten med Gjermund hører til lagtavla —
   // hadde den stått her, ville en nullstilling av vår side latt hans tall bli
   // stående på denne skjermen.
-  const aiWh = kall * 0.24;
+  /* Energien er nå summen av to adskilte metoder, begge per rad i basen:
+   *   dekoding_wh — EcoLogits 0.11.1 (skalerer med output-tokens)
+   *   lesing_wh   — FLOP-basert leseestimat (skalerer med input-tokens),
+   *                 se stand-repoets lesing.ts for kilder og bånd
+   * Reserven kall × 0,24 gjelder bare rader uten metode (før byttet). */
+  const dekodingWh = T ? Number(T.dekoding_wh) : 0;
+  const lesingWh = T ? Number(T.lesing_wh) : 0;
+  const lesingMin = T ? Number(T.lesing_wh_min) : 0;
+  const lesingMaks = T ? Number(T.lesing_wh_max) : 0;
+  const harMetode = dekodingWh > 0 || lesingWh > 0;
+  const aiWh = harMetode ? dekodingWh + lesingWh : kall * 0.24;
   const aiJoule = aiWh * 3600;
   const dekning = aiJoule > 0 ? (joules / aiJoule) * 100 : 0;
   const mangler = Math.max(0, MAAL_JOULE - (joules % MAAL_JOULE));
+  // Hvor mange spørsmål sveivemålet på 8 640 J faktisk dekker, med målt snitt.
+  const joulePerSpm = (T && Number(T.spoersmaal) > 0) ? aiJoule / Number(T.spoersmaal) : JOULE_PER_SPM;
+  const spmForMaal = MAAL_JOULE / joulePerSpm;
 
   return {
     kaldstart, raa, reint, forhold, kall, joules, wh, dekning, mangler,
@@ -117,8 +130,8 @@ function tallene() {
     // Sveivehalvdelen bygges av medstudenten. Før den finnes skal skjermen si
     // det, ikke vise 0 J og 0 % som om rommet hadde sveivet og fått ingenting.
     ingenSveiv: !T || Number(T.sveiveoekter) === 0,
-    aiWh,
-    vannL: kall * 0.00026,
+    aiWh, dekodingWh, lesingWh, lesingMin, lesingMaks, harMetode, spmForMaal,
+    vannL: T && Number(T.vann_l) > 0 ? Number(T.vann_l) : kall * 0.00026,
     brukt: T ? Number(T.brukt_usd) : 0,
     budsjett: T ? Number(T.budsjett_usd) : 0,
   };
@@ -180,8 +193,8 @@ function enheter(d) {
   return [
     { tall: sep(sider),        navn: "A4-sider åpnet",          fin: "hele sidene, 3 000 tegn per side" },
     { tall: lesetid,           navn: "å lese dem for et menneske", fin: "~200 ord i minuttet" },
-    { tall: vann,              navn: "vann til kjøling",        fin: "0,26 mL per forespørsel" },
-    { tall: komma(wh) + " Wh", navn: "strøm, som gulv",         fin: "0,24 Wh per forespørsel" },
+    { tall: vann,              navn: "vann til kjøling",        fin: d.harMetode ? "EcoLogits, kun generering" : "0,26 mL per forespørsel" },
+    { tall: komma(wh) + " Wh", navn: "strøm, lesing + svar",    fin: d.harMetode ? `derav lesing ${komma(d.lesingWh)} [${komma(d.lesingMin)}–${komma(d.lesingMaks)}]` : "0,24 Wh per forespørsel" },
   ];
 }
 
@@ -370,8 +383,14 @@ function tegn() {
     <div class="kol" style="gap:6px;flex-grow:1">
       <div style="font-size:20px;color:#ededed;line-height:1.45">${d.ingenSveiv
         ? "Sveiva er ikke koblet til enda, så dekningen er ikke målt. Tokentallene til venstre er ekte."
-        : `Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — nok til de ti neste spørsmålene. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.`}</div>
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Våre råe spørsmål er mye større enn en median forespørsel, så dette er et gulv, ikke et estimat.</div>
+        : `Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — ${
+            d.spmForMaal >= 1.5 ? `nok til de ${Math.floor(d.spmForMaal)} neste spørsmålene`
+            : d.spmForMaal >= 0.95 ? "nok til omtrent ett spørsmål"
+            : `dekker ikke engang ett spørsmål (${komma(d.spmForMaal * 100, 0)} % av ett)`
+          }. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.`}</div>
+      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">${d.harMetode
+        ? "Energi: EcoLogits 0.11.1 for svaret pluss et FLOP-basert leseestimat (Epoch AI-forankret, MFU 10–30 %). Lesingen dominerer — det er den de vanlige verktøyene ikke regner. Attention-leddet er utelatt, så tallet er et gulv."
+        : "Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Et gulv, ikke et estimat."}</div>
     </div>
     <div class="kol" style="gap:5px;flex-shrink:0;align-items:flex-end;padding-left:26px;border-left:1px solid #282828">
       <div class="mono" style="font-size:19px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#6b6b6b"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
