@@ -79,6 +79,9 @@ function nyOkt() {
     side: SIDER[0],
     oppgave: "",
     aktivitet: null,
+    sideValgt: false,
+    fase: null,
+    malt: null,
     laster: false,
     resultat: null,   // { raa, rein }
     feil: null,       // { grunn, http_status, detalj }
@@ -177,25 +180,65 @@ function loggSteg(navn) {
 
 // ────────────────────────────────────────────────────────────── AI-kallet
 
+/* Kjører målingen, og lar den besøkende se den skje.
+ *
+ * Tørrkjøringen først. Den henter siden og trekker ut hovedinnholdet uten å
+ * kalle modellen, og returnerer ekte tegnantall på rundt halvannet sekund. Det
+ * gir oss tall å vise MENS agenten jobber, i stedet for en spinner.
+ *
+ * Alt som vises er målt. Ingen falsk framdrift, ingen påfunnet prosent — hvert
+ * steg fylles inn når det faktisk er ferdig. Det er den samme regelen som
+ * gjelder på storskjermen, og den gjelder her fordi en besøkende som tar oss i
+ * å pynte på ventetiden har god grunn til å tvile på resten av tallene også.
+ *
+ * Bonus: en blokkert side oppdages nå før noe modellkall i det hele tatt
+ * forsøkes. */
 async function spør() {
-  S.laster = true; S.feil = null; S.resultat = null; tegn();
+  S.laster = true; S.feil = null; S.resultat = null;
+  S.fase = "henter"; S.malt = null;
+  tegn();
 
-  const kropp = (variant) => ({
+  const kropp = (ekstra) => ({
     session_id: S.session_id,
     station: STASJON,
     site_url: S.side.url,
     task_label: S.oppgave.trim(),
     oppgave_nokkel: S.aktivitet,
-    variant,
+    ...ekstra,
   });
 
+  const kall = (kr) =>
+    fetch(FUNK, { method: "POST", headers: HODER, body: JSON.stringify(kr) }).then((r) => r.json());
+
   try {
-    // Begge armene samtidig. Funksjonen henter siden én gang per kall, men
-    // begge kallene treffer samme side innenfor sekunder, så de måler samme
-    // dokument. Serielt ville doblet ventetiden foran en kø av studenter.
+    // ── 1. agenten åpner og leser sida ────────────────────────────────────
+    const t0 = Date.now();
+    const tørr = await kall(kropp({ variant: "raa", toerrkjoer: true }));
+    const hentet_ms = Date.now() - t0;
+
+    if (!tørr.ok) {
+      // Blokkert eller utilgjengelig. Ingen tokens brukt, ingen rad skrevet.
+      S.feil = { grunn: tørr.grunn ?? "ukjent", http_status: tørr.http_status ?? null, detalj: tørr.detalj ?? "" };
+      S.laster = false; S.fase = null; tegn();
+      return;
+    }
+
+    S.malt = {
+      raa_tegn: tørr.raa_tegn,
+      reint_tegn: tørr.reint_tegn,
+      utdrag: (tørr.reint_utdrag || "").replace(/\s+/g, " ").trim().slice(0, 120),
+      hentet_ms,
+    };
+    // Ett kort opphold så tallene rekker å bli lest før neste steg starter.
+    // Det er presentasjon av en måling som allerede er gjort, ikke falsk tid.
+    S.fase = "lest"; tegn();
+    await new Promise((r) => setTimeout(r, 900));
+
+    // ── 2. begge armene til modellen ──────────────────────────────────────
+    S.fase = "sender"; tegn();
     const [raa, rein] = await Promise.all([
-      fetch(FUNK, { method: "POST", headers: HODER, body: JSON.stringify(kropp("raa")) }).then((r) => r.json()),
-      fetch(FUNK, { method: "POST", headers: HODER, body: JSON.stringify(kropp("reint")) }).then((r) => r.json()),
+      kall(kropp({ variant: "raa" })),
+      kall(kropp({ variant: "reint" })),
     ]);
 
     if (!raa.ok || !rein.ok) {
@@ -211,10 +254,9 @@ async function spør() {
       S.steg = 3;
     }
   } catch (err) {
-    // Nettet forsvant midt i. Egen tilstand, ikke en generisk feil.
     S.feil = { grunn: navigator.onLine ? "nett" : "frakoblet", detalj: String(err?.message ?? err) };
   }
-  S.laster = false;
+  S.laster = false; S.fase = null;
   tegn();
 }
 
@@ -258,7 +300,8 @@ const HANDLINGER = {
   velgSide(el) {
     // Aktiviteten hører til siden. Bytter du side, må valget nullstilles,
     // ellers sendes forrige sides spørsmål til en ny side.
-    S.aktivitet = null; S.oppgave = ""; S.side = SIDER[Number(el.dataset.i)]; tegn(); },
+    S.aktivitet = null; S.oppgave = ""; S.sideValgt = true;
+    S.side = SIDER[Number(el.dataset.i)]; tegn(); },
   velgAktivitet(el) {
     const a = S.side.aktiviteter.find((x) => x.nokkel === el.dataset.nokkel);
     if (!a) return;
@@ -314,73 +357,139 @@ function s0() {
   </div>`;
 }
 
+/* Steg 1 som en samtale med en assistent.
+ *
+ * Hensikten er gjenkjennelse: studenten skal kjenne igjen situasjonen «jeg ber
+ * en AI om å gjøre noe for meg», fordi det er den situasjonen målingen handler
+ * om. Formen er en chat; utseendet er standens eget, ikke et bestemt produkts.
+ *
+ * Meldingene avdekkes etter hvert som valgene tas, så det leses som en
+ * samtale i stedet for et skjema. */
 function s1() {
+  // Sida vises først når den er aktivt valgt. Standardsida i nyOkt() skal
+  // ikke gi assistenten svar den ikke har fått.
+  const side = S.sideValgt ? S.side : null;
   const valgt = S.aktivitet;
+  const akt = valgt ? S.side.aktiviteter.find((a) => a.nokkel === valgt) : null;
+
   return `
-  <div class="kol" style="gap:19px;height:100%">
+  <div class="kol" style="gap:14px;height:100%">
     <div class="kol" style="gap:8px">
       <div class="lbl" style="color:#f97316">Steg 1 av 3</div>
-      <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Velg en side, og hva du vil gjøre der</div>
+      <div class="disp" style="font-size:27px;font-weight:700;line-height:1.15">Be assistenten om noe</div>
     </div>
 
-    <div class="kol" style="gap:10px">
-      <div class="lbl">Side</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${SIDER.map((x, i) => `<div class="chip${x.url === S.side.url ? " chip-on" : ""}" data-handling="velgSide" data-i="${i}">${x.navn}</div>`).join("")}
+    <div class="kol" style="gap:13px;overflow-y:auto;flex:1;min-height:0;padding-bottom:4px">
+
+      <div class="rad inn">
+        ${avatar()}
+        <div class="boble boble-ai">Hei. Jeg er en AI-assistent.<br>Hvilken nettside skal jeg gjøre noe på?</div>
       </div>
-    </div>
 
-    <div class="kol" style="gap:10px">
-      <div class="lbl">Hva vil du gjøre?</div>
-      <div class="kol" style="gap:9px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding-left:40px">
+        ${SIDER.map((x, i) => `<div class="chip${side && x.url === S.side.url ? " chip-on" : ""}" data-handling="velgSide" data-i="${i}">${x.navn}</div>`).join("")}
+      </div>
+
+      ${side ? `
+      <div class="rad rad-du inn">
+        <div class="boble boble-du">${esc(S.side.navn)}</div>
+      </div>
+
+      <div class="rad inn">
+        ${avatar()}
+        <div class="boble boble-ai">Greit. Hva vil du at jeg skal gjøre på ${esc(S.side.navn)}?</div>
+      </div>
+
+      <div class="kol" style="gap:9px;padding-left:40px">
         ${S.side.aktiviteter.map((a) => `
-          <div class="svar${valgt === a.nokkel ? " svar-on" : ""}" data-handling="velgAktivitet" data-nokkel="${a.nokkel}">
+          <div class="svar${valgt === a.nokkel ? " svar-on" : ""}" data-handling="velgAktivitet" data-nokkel="${a.nokkel}" style="font-size:16px">
             ${a.tekst}
           </div>`).join("")}
-      </div>
+      </div>` : ""}
+
+      ${akt ? `
+      <div class="rad rad-du inn">
+        <div class="boble boble-du">${esc(akt.tekst)}</div>
+      </div>` : ""}
     </div>
 
-    <div class="kol" style="gap:11px;margin-top:auto">
-      <div class="btn${valgt ? "" : " btn-av"}" data-handling="${valgt ? "spor" : "ingenting"}">
-        <span class="disp" style="font-size:19px;font-weight:700;color:${valgt ? "#fff" : "#5a5a5a"}">Mål begge versjonene</span>
+    <div class="kol" style="gap:10px">
+      <div class="btn${akt ? "" : " btn-av"}" data-handling="${akt ? "spor" : "ingenting"}">
+        <span class="disp" style="font-size:18px;font-weight:700;color:${akt ? "#fff" : "#5a5a5a"}">Send til assistenten</span>
       </div>
-      <div class="fin">Samme spørsmål sendes to ganger: én gang med hele siden slik den er kodet, én gang med bare teksten.</div>
+      <div class="fin">Assistenten gjør det samme to ganger: én gang med hele siden slik den er kodet, én gang med bare teksten. Du får se hva den faktisk leser.</div>
     </div>
     ${køLinje()}
   </div>`;
 }
 
+/** Assistentens ikon. Strektegnet SVG, ingen emoji, som resten av designet. */
+function avatar() {
+  return `<div class="avatar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/>
+      <path d="M9 13v1M15 13v1"/>
+    </svg>
+  </div>`;
+}
+
+/* Lastesiden viser agentens arbeid som en sjekkliste som fylles inn.
+ *
+ * Tre steg, i den rekkefølgen funksjonen faktisk gjør dem. Tallene til høyre
+ * er målte, ikke anslag. Utdraget nederst er de første ordene Readability
+ * faktisk fant, så den besøkende ser forskjellen mellom «hele siden» og «bare
+ * teksten» med egne øyne før modellen har svart. */
 function laster() {
+  const f = S.fase, m = S.malt;
+  const ferdig = { henter: 0, lest: 1, sender: 2 }[f] ?? 0;
+
+  const steg = (nr, tittel, verdi, undertekst) => {
+    const status = nr < ferdig || (nr === ferdig && nr < 2 && m) ? "ok"
+                 : nr === ferdig ? "gaar" : "vent";
+    const merke = status === "ok" ? "&#10003;" : "";
+    return `
+    <div class="steg">
+      <div class="prikk prikk-${status}">${merke}</div>
+      <div class="kol" style="gap:3px;flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+          <span style="font-size:16px;color:${status === "vent" ? "#5a5a5a" : "#ededed"}">${tittel}</span>
+          ${verdi ? `<span class="mono" style="font-size:15px;color:${status === "ok" ? "#4ade80" : "#6b6b6b"};flex-shrink:0">${verdi}</span>` : ""}
+        </div>
+        ${undertekst ? `<div style="font-size:13px;color:#6b6b6b;line-height:1.4">${undertekst}</div>` : ""}
+      </div>
+    </div>`;
+  };
+
   return `
-  <div class="kol" style="gap:17px;height:100%">
-    <div class="kol" style="gap:7px;align-items:center">
-      <div class="lbl" style="color:#f97316">Spør nå</div>
-      <div class="mono" style="font-size:18px;color:#ededed">${S.side.navn}</div>
-      <div style="font-size:15px;color:#9a9a9a;text-align:center">«${esc(S.oppgave)}»</div>
+  <div class="kol" style="gap:16px;height:100%">
+    <div class="rad">
+      ${avatar()}
+      <div class="boble boble-ai">Jobber med det. Du kan se hva jeg gjør.</div>
     </div>
-    <div style="font-size:15px;color:#9a9a9a;line-height:1.45;text-align:center">Samme spørsmål, to ulike versjoner av siden:</div>
-    <div class="kol" style="gap:12px">
-      <div class="kol" style="gap:9px;padding:15px 16px;background:#111;border:1px solid #3a2412;border-radius:11px">
-        <div style="display:flex;align-items:center;gap:11px">
-          <div style="width:10px;height:10px;border-radius:999px;background:#f97316;flex-shrink:0"></div>
-          <div style="font-size:16px;color:#ededed;font-weight:600">Hele siden slik den er kodet</div>
-        </div>
-        <div class="mono" style="font-size:10px;color:#5a5a5a;line-height:1.5;background:#0a0a0a;border-radius:6px;padding:9px 10px;max-height:50px;overflow:hidden">&lt;div class="c-header__inner" data-module="nav"<br>aria-hidden="false"&gt;&lt;script&gt;window.__cmp=<br>{"consent":false,"vendors":[41,52,…</div>
-        <div style="font-size:13.5px;color:#9a9a9a;line-height:1.4">kode, menyer, cookie-banner, reklame — alt</div>
-      </div>
-      <div class="kol" style="gap:9px;padding:15px 16px;background:#111;border:1px solid #1e3a24;border-radius:11px">
-        <div style="display:flex;align-items:center;gap:11px">
-          <div style="width:10px;height:10px;border-radius:999px;background:#4ade80;flex-shrink:0"></div>
-          <div style="font-size:16px;color:#ededed;font-weight:600">Bare teksten på siden</div>
-        </div>
-        <div class="mono" style="font-size:11px;color:#9a9a9a;line-height:1.5;background:#0a0a0a;border-radius:6px;padding:9px 10px;max-height:50px;overflow:hidden">${esc(S.side.navn)}<br>hovedinnholdet, uten kode</div>
-        <div style="font-size:13.5px;color:#9a9a9a;line-height:1.4">det du faktisk leser</div>
-      </div>
+
+    <div class="kol" style="gap:5px;padding:6px 16px 10px;background:#111;border:1px solid #282828;border-radius:12px">
+      ${steg(0, `Åpner ${esc(S.side.navn)}`, m ? `${(m.hentet_ms / 1000).toFixed(1)} s` : "", "henter sida slik en agent får den")}
+      ${steg(1, "Leser hele siden", m ? `${tall(m.raa_tegn)} tegn` : "", "kode, menyer, cookie-banner, reklame — alt")}
+      ${steg(1, "Finner hovedinnholdet", m ? `${tall(m.reint_tegn)} tegn` : "", "det du faktisk leser med øynene")}
+      ${steg(2, "Spør modellen med begge versjonene", "", "samme spørsmål, to ulike sider")}
     </div>
-    <div style="height:5px;background:#1c1c1c;border-radius:999px;overflow:hidden">
+
+    ${m ? `<div class="kol inn" style="gap:7px;padding:13px 15px;background:#0e0e0e;border:1px solid #1e3a24;border-radius:11px">
+      <div class="lbl" style="font-size:11px">Dette fant den</div>
+      <div style="font-size:14px;color:#cfcfcf;line-height:1.45">«${esc(m.utdrag)}…»</div>
+    </div>` : ""}
+
+    ${m ? `<div style="text-align:center;font-size:15px;color:#9a9a9a;line-height:1.45">
+      Den leste <span class="mono" style="color:#f97316">${tall(m.raa_tegn)}</span> tegn
+      for å finne <span class="mono" style="color:#4ade80">${tall(m.reint_tegn)}</span>.
+    </div>` : ""}
+
+    <div style="margin-top:auto;height:5px;background:#1c1c1c;border-radius:999px;overflow:hidden">
       <div class="skyv" style="height:100%;background:#f97316;border-radius:999px"></div>
     </div>
-    <div style="text-align:center;font-size:14px;color:#6b6b6b">Begge spørsmålene går nå. Den store siden tar lengst tid.</div>
+    <div style="text-align:center;font-size:13.5px;color:#6b6b6b">${
+      f === "sender" ? "Den store versjonen tar lengst tid." : "Ingen tall er gjettet. Alt du ser er målt."
+    }</div>
   </div>`;
 }
 

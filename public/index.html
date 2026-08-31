@@ -44,6 +44,35 @@
   /* Valgt aktivitet. Oransje som brikkene, så «valgt» ser likt ut i hele flyten. */
   .svar-on{border-color:#f97316;background:#1d1309;color:#fb923c}
   .btn-av{background:#1c1c1c;cursor:default}
+
+  /* Samtaleformen. Gjenkjennelig som en chat, men i standens eget språk —
+     ikke en kopi av et bestemt produkt. Poenget er at studenten kjenner igjen
+     situasjonen «jeg ber en AI gjøre noe», ikke at det ser ut som ChatGPT. */
+  .rad{display:flex;gap:10px;align-items:flex-start}
+  .rad-du{justify-content:flex-end}
+  .avatar{
+    width:30px;height:30px;border-radius:999px;flex-shrink:0;
+    background:#1d1309;border:1px solid #f97316;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .boble{padding:13px 15px;border-radius:14px;font-size:16px;line-height:1.45;max-width:84%}
+  .boble-ai{background:#141414;border:1px solid #282828;border-top-left-radius:5px;color:#ededed}
+  .boble-du{background:#4f46e5;border-top-right-radius:5px;color:#fff}
+  /* Meldingene kommer inn etter hverandre, som i en samtale. */
+  .inn{animation:inn .28s ease-out both}
+  @keyframes inn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.inn{animation:none}}
+
+  /* Sjekklista på lastesiden. Hvert steg fylles inn når det faktisk er målt. */
+  .steg{display:flex;gap:11px;align-items:flex-start;padding:11px 0}
+  .steg + .steg{border-top:1px solid #1c1c1c}
+  .prikk{width:18px;height:18px;border-radius:999px;flex-shrink:0;margin-top:1px;
+         display:flex;align-items:center;justify-content:center;font-size:11px}
+  .prikk-vent{border:1px solid #303030;color:#3d3d3d}
+  .prikk-gaar{border:2px solid #f97316;border-top-color:transparent;animation:snurr .8s linear infinite}
+  .prikk-ok{background:#132a19;border:1px solid #4ade80;color:#4ade80}
+  @keyframes snurr{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.prikk-gaar{animation:none}}
   .btn-av:active{transform:none}
 
   .fin{font-size:12.5px;color:#5a5a5a;line-height:1.45}
