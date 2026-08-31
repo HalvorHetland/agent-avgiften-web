@@ -341,7 +341,7 @@ function s1() {
     </div>
 
     <div class="kol" style="gap:11px;margin-top:auto">
-      <div class="btn${valgt ? "" : " btn-av"}" data-handling="${valgt ? "spør" : "ingenting"}">
+      <div class="btn${valgt ? "" : " btn-av"}" data-handling="${valgt ? "spor" : "ingenting"}">
         <span class="disp" style="font-size:19px;font-weight:700;color:${valgt ? "#fff" : "#5a5a5a"}">Mål begge versjonene</span>
       </div>
       <div class="fin">Samme spørsmål sendes to ganger: én gang med hele siden slik den er kodet, én gang med bare teksten.</div>
