@@ -242,7 +242,7 @@ function tegn() {
     </div>
 
     <div class="kort kol" style="width:540px;flex-shrink:0;gap:16px;padding:26px 30px;border-color:#3a2412">
-      <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt — begge stasjonene</div>
+      <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt — begge stasjonene til sammen</div>
       <div style="display:flex;align-items:baseline;gap:12px">
         <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:58px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
         <div style="font-size:20px;color:#9a9a9a">Wh</div>
@@ -279,11 +279,11 @@ function tegn() {
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall">${komma(aiWh / MOBIL_WH, 1)}</div>
-          <div class="statNavn">mobilladinger</div>
+          <div class="statNavn">mobilladinger til sammen</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
-          <div class="statNavn">vann, ${komma((vannL * 1000) / GLASS_ML, 1)} glass</div>
+          <div class="statNavn">vann til sammen, ${komma((vannL * 1000) / GLASS_ML, 1)} glass</div>
         </div>
       </div>
     </div>
