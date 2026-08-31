@@ -273,6 +273,11 @@ function tegn() {
   app().innerHTML = skjerm();
   app().querySelectorAll("[data-gaa]").forEach((el) => {
     el.onclick = () => {
+      /* Å navigere til et steg betyr å forlate feiltilstanden. Uten dette
+       * vinner `if (S.feil)` i skjerm() over steget, feilskjermen tegnes på
+       * nytt, og knappen ser død ut — det var den for alle fire
+       * feilskjermene, og eneste vei ut var å laste siden på nytt. */
+      S.feil = null;
       S.steg = Number(el.dataset.gaa);
       tegn();
       if (S.steg === 5 || S.steg === 6) hentTotaler();
@@ -286,6 +291,13 @@ function tegn() {
   // modellen, bare til free_text.
   const fr = app().querySelector("#fritekst");
   if (fr) fr.oninput = () => { S.fritekst = fr.value.slice(0, 500); };
+
+  /* En feilskjerm uten en fungerende vei ut er en blindvei: besøkende må
+   * laste siden på nytt, og standen mister dem. Sjekk at det finnes minst én
+   * klikkbar utgang hver gang en feilskjerm tegnes. */
+  if (S.feil && !app().querySelector("[data-gaa],[data-handling]")) {
+    console.error("Feilskjerm uten vei ut:", S.feil.grunn);
+  }
 }
 
 const HANDLINGER = {
