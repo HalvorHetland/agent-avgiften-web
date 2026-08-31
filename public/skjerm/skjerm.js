@@ -38,10 +38,6 @@ const KORPUS = { raa: 103001, reint: 1175, forhold: 87.7 };
 let T = null;        // siste booth_totals
 let SVEIV = [];      // siste tolv sveiveøkter
 let SISTE = [];      // siste innleverte målinger
-/* Felles energipott med Gjermund. Begge stasjonene legger inn via hans
- * `increment_totals`, så dette er tallet begge skjermene skal vise — ellers
- * gir de to svar på det samme spørsmålet. */
-let FELLES = null;
 let forrige = {};    // for å pulse tall som har endret seg
 
 // ─────────────────────────────────────────────────────────────── formatering
@@ -60,17 +56,15 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, s, m, f] = await Promise.all([
+    const [t, s, m] = await Promise.all([
       db.from("booth_totals").select("*").single(),
       db.from("siste_sveiv").select("*"),
       db.from("siste_maalinger").select("*"),
-      db.from("event_totals").select("*").maybeSingle(),
     ]);
     if (t.error) throw t.error;
     T = t.data;
     SVEIV = s.data ?? [];
     SISTE = m.data ?? [];
-    FELLES = f.data ?? null;
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     // Behold siste kjente tall og si fra. Bedre enn en tom skjerm, og langt
@@ -106,9 +100,10 @@ function tallene() {
   const kall = kaldstart ? 0 : Number(T.kall);
   const joules = T ? Number(T.joules) : 0;
   const wh = joules / 3600;
-  // Nevneren er den felles potten når den finnes: den dekker begge stasjonene,
-  // ikke bare det vi har logget her.
-  const aiWh = FELLES ? Number(FELLES.total_energy_wh) : kall * 0.24;
+  // Bare våre egne kall. Den felles potten med Gjermund hører til lagtavla —
+  // hadde den stått her, ville en nullstilling av vår side latt hans tall bli
+  // stående på denne skjermen.
+  const aiWh = kall * 0.24;
   const aiJoule = aiWh * 3600;
   const dekning = aiJoule > 0 ? (joules / aiJoule) * 100 : 0;
   const mangler = Math.max(0, MAAL_JOULE - (joules % MAAL_JOULE));
@@ -123,8 +118,7 @@ function tallene() {
     // det, ikke vise 0 J og 0 % som om rommet hadde sveivet og fått ingenting.
     ingenSveiv: !T || Number(T.sveiveoekter) === 0,
     aiWh,
-    vannL: FELLES ? Number(FELLES.total_water_l) : kall * 0.00026,
-    felles: Boolean(FELLES),
+    vannL: kall * 0.00026,
     brukt: T ? Number(T.brukt_usd) : 0,
     budsjett: T ? Number(T.budsjett_usd) : 0,
   };
@@ -186,8 +180,8 @@ function enheter(d) {
   return [
     { tall: sep(sider),        navn: "A4-sider åpnet",          fin: "hele sidene, 3 000 tegn per side" },
     { tall: lesetid,           navn: "å lese dem for et menneske", fin: "~200 ord i minuttet" },
-    { tall: vann,              navn: "vann til kjøling",        fin: d.felles ? "begge stasjonene" : "0,26 mL per forespørsel" },
-    { tall: komma(wh) + " Wh", navn: "strøm, som gulv",         fin: d.felles ? "begge stasjonene, felles pott" : "0,24 Wh per forespørsel" },
+    { tall: vann,              navn: "vann til kjøling",        fin: "0,26 mL per forespørsel" },
+    { tall: komma(wh) + " Wh", navn: "strøm, som gulv",         fin: "0,24 Wh per forespørsel" },
   ];
 }
 

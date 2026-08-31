@@ -48,13 +48,18 @@
     <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15">Nullstill målingene</div>
   </div>
 
-  <div class="kort advarsel kol" style="gap:9px">
-    <div style="font-size:15px;color:#ededed;line-height:1.5">
-      Dette sletter <b>alle</b> målinger permanent: <span class="mono">ai_runs</span>,
-      <span class="mono">crank_runs</span>, <span class="mono">holdninger</span>,
-      <span class="mono">free_text</span> og <span class="mono">guesses</span>.
+  <div class="kort advarsel kol" style="gap:11px">
+    <div class="kol" style="gap:5px">
+      <div style="font-size:15px;color:#ededed;line-height:1.5">
+        <b>Storskjermen din</b> nullstilles alltid: <span class="mono">ai_runs</span>,
+        <span class="mono">crank_runs</span>, <span class="mono">holdninger</span>,
+        <span class="mono">free_text</span>, <span class="mono">guesses</span>.
+      </div>
+      <div class="fin">Tokens, spørsmål, siste innleverte, energi og vann går til null.</div>
     </div>
-    <div class="fin">Kan ikke angres. Tidspunktet logges, så oppgaven vet når innsamlingen startet.</div>
+    <div class="fin" style="padding-top:9px;border-top:1px solid #282828">
+      Kan ikke angres. Tidspunktet logges, så oppgaven vet når innsamlingen startet.
+    </div>
   </div>
 
   <div class="kol" style="gap:9px">
@@ -65,9 +70,10 @@
   <div class="kort">
     <label>
       <input type="checkbox" id="felles">
-      <span>Nullstill også den felles energipotten
-        (<span class="mono">event_totals</span>).
-        <b style="color:#fbbf24">Dette er Gjermunds tabell</b> — avtal det med ham først.</span>
+      <span>Nullstill også <b>lagtavla</b> — den felles energipotten
+        (<span class="mono">event_totals</span>), som inneholder Gjermunds tall.
+        <b style="color:#fbbf24">Dette er hans tabell</b> — avtal det med ham først.
+        Storskjermen din påvirkes ikke av dette valget.</span>
     </label>
   </div>
 
@@ -119,7 +125,8 @@ kjor.onclick = async () => {
         <div style="font-size:15px;color:#cfcfcf;line-height:1.5">
           Slettet <span class="mono">${d.slettet_ai}</span> AI-rader og
           <span class="mono">${d.slettet_sveiv}</span> sveiverader.
-          ${d.felles_ogsaa ? "Den felles potten er satt til null." : "Den felles potten er urørt."}
+          Storskjermen din er nullstilt.
+          ${d.felles_ogsaa ? "Lagtavlas felles pott er også satt til null." : "Lagtavlas felles pott er urørt."}
         </div>
         <div class="fin">Åpne skjermene på nytt, så starter kurven fra null.</div>`;
       bekreft.value = ""; vurder();
