@@ -248,14 +248,18 @@ function tegn() {
         <div style="font-size:20px;color:#9a9a9a">Wh</div>
       </div>
 
+      <!-- Stolpene under er PERSONER, ikke kategorier. Halvor var oransje, som
+           er diagrammets «ikke dekket» — to helt ulike ting i samme farge rett
+           ved siden av hverandre. Indigo og lilla holder dem adskilt fra
+           diagrammets oransje og grønne. -->
       <div class="kol" style="gap:14px;margin-top:2px">
         <div class="kol" style="gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
             <span style="font-size:20px;color:#ededed">Halvor <span style="font-size:15px;color:#6b6b6b">— nettsidelesing</span></span>
-            <span class="mono" style="font-size:20px;color:#fb923c">${komma(vaarWh, 2)} Wh</span>
+            <span class="mono" style="font-size:20px;color:#818cf8">${komma(vaarWh, 2)} Wh</span>
           </div>
           <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
-            <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#f97316"></div>
+            <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#4f46e5"></div>
           </div>
         </div>
         <div class="kol" style="gap:8px">
