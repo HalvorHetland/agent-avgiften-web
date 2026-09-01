@@ -57,7 +57,11 @@ const SIDER = [
     { nokkel: "oslo_kontakt",   tekst: "hvordan kontakter jeg kommunen?" },
     { nokkel: "oslo_avfall",    tekst: "hvordan leverer jeg avfall?" },
   ] },
-  { navn: "vy.no", url: "https://www.vy.no/", aktiviteter: [
+  /* avviser: verifisert 31. aug 2026 at siden svarer 403 på hver automatiske
+   * forespørsel, også en helt vanlig curl uten noe med standen å gjøre.
+   * Flagget styrer ordlyden på blokkert-skjermen: uten det kan vi bare påstå
+   * at DETTE forsøket ble avvist, ikke at siden alltid gjør det. */
+  { navn: "vy.no", url: "https://www.vy.no/", avviser: true, aktiviteter: [
     { nokkel: "vy_oversikt", tekst: "hva kan jeg gjøre her?" },
     { nokkel: "vy_tog",      tekst: "når går neste tog?" },
   ] },
@@ -730,7 +734,7 @@ function budsjettSlutt() {
 function blokkert() {
   return `
   <div class="kol" style="gap:17px;height:100%">
-    <div class="lbl" style="color:#fbbf24">Sjelden fangst</div>
+    <div class="lbl" style="color:#fbbf24">Ingen tilgang</div>
     <div class="disp" style="font-size:29px;font-weight:700;line-height:1.15">Denne siden nektet agenten innsyn</div>
     <div class="mono" style="font-size:16px;color:#fbbf24">${esc(S.side.navn)} · HTTP ${S.feil.http_status ?? "403"}</div>
     <div class="kol" style="gap:9px;padding:16px 17px;background:#111;border:1px solid #282828;border-radius:11px">
@@ -738,7 +742,7 @@ function blokkert() {
         <span style="font-size:15px;color:#ededed">Anonym agent</span>
         <span class="mono" style="font-size:16px;color:#fbbf24">Avvist</span>
       </div>
-      <div style="font-size:14px;color:#9a9a9a;line-height:1.45">Serveren svarte ${S.feil.http_status ?? 403} før noe innhold ble sendt. Agenten fikk aldri se siden.</div>
+      <div style="font-size:14px;color:#9a9a9a;line-height:1.45">Serveren svarte ${S.feil.http_status ?? 403} før noe innhold ble sendt. Agenten fikk aldri se siden.${S.side.avviser ? " Denne siden avviser alle automatiske forespørsler, ikke bare denne — det er ikke tilfeldig." : ""}</div>
     </div>
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15.5px;color:#ededed;font-weight:600;line-height:1.4">Dette er ikke en feil i målingen</div>
