@@ -88,6 +88,7 @@ function nyOkt() {
     malt: null,
     laster: false,
     resultat: null,   // { raa, rein }
+    visSvar: false,
     feil: null,       // { grunn, http_status, detalj }
     fritekst: "",
     totaler: null,
@@ -275,6 +276,11 @@ const app = () => document.getElementById("app");
 function tegn() {
   if (S.session_id) loggSteg(`s${S.ferdig ? "ferdig" : S.steg}`);
   app().innerHTML = skjerm();
+  /* Hver tegning bygger DOM-en på nytt, og scrollposisjonen nullstilles.
+   * I samtalen betyr det at hvert trykk kastet den besøkende til toppen —
+   * eget svar og neste spørsmål havnet under folden. Chat ruller til nyeste. */
+  const samtale = document.getElementById("samtale");
+  if (samtale) samtale.scrollTop = samtale.scrollHeight;
   app().querySelectorAll("[data-gaa]").forEach((el) => {
     el.onclick = () => {
       /* Å navigere til et steg betyr å forlate feiltilstanden. Uten dette
@@ -326,6 +332,7 @@ const HANDLINGER = {
     tegn();
   },
   ingenting() {},
+  visSvar() { S.visSvar = !S.visSvar; tegn(); },
   spor() { if (S.oppgave.trim()) { S.steg = 2; tegn(); spør(); } },
   prøvIgjen() { spør(); },
   sendFritekst() {
@@ -367,7 +374,7 @@ function s0() {
       ${alt.map((a) => `<div class="svar" data-handling="svar1" data-verdi="${esc(a)}">${a}</div>`).join("")}
     </div>
     <div style="margin-top:auto;display:flex;gap:11px;padding:15px 17px;background:#111;border:1px solid #282828;border-radius:11px">
-      <div class="fin">Helt anonymt. Ingen innlogging, ingenting om deg lagres. Svarene brukes i masteroppgaven min.</div>
+      <div class="fin">Helt anonymt. Ingen innlogging, og ingenting som kan identifisere deg lagres. Svarene brukes i masteroppgaven min.</div>
     </div>
     ${køLinje()}
   </div>`;
@@ -395,9 +402,9 @@ function s1() {
       <div class="disp" style="font-size:27px;font-weight:700;line-height:1.15">Be assistenten om noe</div>
     </div>
 
-    <div class="kol" style="gap:13px;overflow-y:auto;flex:1;min-height:0;padding-bottom:4px">
+    <div class="kol" id="samtale" style="gap:13px;overflow-y:auto;flex:1;min-height:0;padding-bottom:4px">
 
-      <div class="rad inn">
+      <div class="rad${side ? "" : " inn"}">
         ${avatar()}
         <div class="boble boble-ai">Hei. Jeg er en AI-assistent.<br>Hvilken nettside skal jeg gjøre noe på?</div>
       </div>
@@ -407,11 +414,11 @@ function s1() {
       </div>
 
       ${side ? `
-      <div class="rad rad-du inn">
+      <div class="rad rad-du${akt ? "" : " inn"}">
         <div class="boble boble-du">${esc(S.side.navn)}</div>
       </div>
 
-      <div class="rad inn">
+      <div class="rad${akt ? "" : " inn"}">
         ${avatar()}
         <div class="boble boble-ai">Greit. Hva vil du at jeg skal gjøre på ${esc(S.side.navn)}?</div>
       </div>
@@ -518,8 +525,19 @@ function s3() {
   <div class="kol" style="gap:16px;height:100%;overflow-y:auto">
     <div class="kol" style="gap:7px">
       <div class="lbl" style="color:#f97316">Steg 2 av 3</div>
-      <div class="disp" style="font-size:27px;font-weight:700;line-height:1.15">Begge svarene ble riktige</div>
-      <div style="font-size:14.5px;color:#9a9a9a;line-height:1.45">«${esc(rein.answer.split("\n")[0].slice(0, 120))}»</div>
+      <div class="disp" style="font-size:27px;font-weight:700;line-height:1.15">To svar, to helt ulike regninger</div>
+      <div style="font-size:14.5px;color:#9a9a9a;line-height:1.45">Samme spørsmål, stilt to ganger. Om svarene ble like gode dømmer du — ikke vi.</div>
+    </div>
+    <div class="kol" style="gap:9px">
+      <div class="kol" style="gap:5px;padding:13px 15px;background:#141414;border:1px solid #282828;border-left:3px solid #f97316;border-radius:10px">
+        <div class="fin" style="color:#f97316">Svar etter hele siden slik den er kodet</div>
+        <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">«${esc(S.visSvar ? raa.answer : raa.answer.slice(0, 150) + (raa.answer.length > 150 ? " …" : ""))}»</div>
+      </div>
+      <div class="kol" style="gap:5px;padding:13px 15px;background:#141414;border:1px solid #282828;border-left:3px solid #4ade80;border-radius:10px">
+        <div class="fin" style="color:#4ade80">Svar etter bare teksten på siden</div>
+        <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">«${esc(S.visSvar ? rein.answer : rein.answer.slice(0, 150) + (rein.answer.length > 150 ? " …" : ""))}»</div>
+      </div>
+      ${raa.answer.length > 150 || rein.answer.length > 150 ? `<div class="fin" data-handling="visSvar" style="color:#818cf8;cursor:pointer">${S.visSvar ? "Vis mindre" : "Les hele svarene"}</div>` : ""}
     </div>
     <div class="kol" style="gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:baseline">
@@ -566,6 +584,19 @@ function s4() {
 }
 
 function s5() {
+  /* Energien for AKKURAT denne økta: EcoLogits for svarene pluss det
+   * FLOP-baserte leseestimatet, fra de samme feltene som lagres i basen.
+   * Konstanten 864 J er bare reserve for økter uten energifelt — å vise den
+   * som «ett spørsmål» ville motsagt storskjermen, som regner med lesingen. */
+  const r = S.resultat;
+  const wh = r ? (r.raa.energy_wh ?? 0) + (r.raa.lesing_wh ?? 0)
+             + (r.rein.energy_wh ?? 0) + (r.rein.lesing_wh ?? 0) : 0;
+  const joule = wh > 0 ? wh * 3600 : 864;
+  const sveivS = joule / 40;                       // sveiva yter ~40 W
+  const sveivTekst = sveivS >= 90 ? `${Math.round(sveivS / 60)} minutter` : `${Math.round(sveivS)} sekunder`;
+  const tvS = joule / 100;
+  const tvTekst = tvS >= 90 ? `${Math.round(tvS / 60)} minutter` : `${Math.round(tvS)} sekunder`;
+  const batteri = (wh > 0 ? wh : 0.24) / 11 * 100;
   return `
   <div class="kol" style="gap:18px;height:100%">
     <div class="kol" style="gap:8px">
@@ -573,13 +604,15 @@ function s5() {
       <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Nå lager du strømmen selv</div>
     </div>
     <div class="kol" style="gap:6px;align-items:center;padding:22px;background:#111;border:1px solid #1e3a24;border-radius:14px">
-      <div class="mono disp" style="font-size:68px;font-weight:500;line-height:1;color:#4ade80">864</div>
-      <div style="font-size:16px;color:#9a9a9a">joule for ett spørsmål</div>
-      <div style="font-size:15px;color:#6b6b6b;margin-top:4px">omtrent 21 sekunder på sveiva</div>
+      <div class="mono disp" style="font-size:${joule >= 10000 ? 52 : 68}px;font-weight:500;line-height:1;color:#4ade80">${tall(Math.round(joule))}</div>
+      <div style="font-size:16px;color:#9a9a9a">joule for ${wh > 0 ? "spørsmålet ditt" : "ett spørsmål"}</div>
+      <div style="font-size:15px;color:#6b6b6b;margin-top:4px">omtrent ${sveivTekst} på sveiva</div>
     </div>
     <div class="kol" style="gap:9px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
-      <div style="font-size:15px;color:#ededed;line-height:1.5">De 21 sekundene gir like mye strøm som <b>9 sekunder</b> med TV-en på. Eller <b>2 %</b> av mobilbatteriet ditt.</div>
-      <div class="fin">TV på 100 W, mobilbatteri på 12 Wh, 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Poenget er ikke at ett spørsmål er mye — det er hvor lite en kropp orker å lage.</div>
+      <div style="font-size:15px;color:#ededed;line-height:1.5">Det er like mye strøm som <b>${tvTekst}</b> med TV-en på. Eller <b>${batteri < 1 ? batteri.toFixed(1) : Math.round(batteri)} %</b> av mobilbatteriet ditt.</div>
+      <div class="fin">${wh > 0
+        ? "Modellert fra dine egne målte tokens: EcoLogits for svarene pluss et kildeforankret leseestimat. TV på 100 W, mobilbatteri på 11 Wh. Ingen forventer at du sveiver alt — poenget er å kjenne hvor mye det er."
+        : "TV på 100 W, mobilbatteri på 11 Wh, 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Poenget er ikke at ett spørsmål er mye — det er hvor lite en kropp orker å lage."}</div>
     </div>
     ${rommetBoks()}
     <div class="btn" data-gaa="6" style="margin-top:auto">
@@ -611,7 +644,16 @@ function s6() {
 function rommetBoks() {
   const t = S.totaler;
   if (!t) return "";
-  const aiJoule = Number(t.kall) * 864;
+  // Samme regel som storskjermen: en sveiv som ikke er koblet til har ikke
+  // «sveivet inn 0 %» — den finnes ikke enda.
+  if (Number(t.sveiveoekter) === 0) {
+    return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
+      <div class="disp" style="font-size:18px;font-weight:700">Rommet mot AI-en</div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva kobles til på standdagen. Alt som sveives går i samme pott, mot alt AI-en har brukt.</div>
+    </div>`;
+  }
+  const aiWh = Number(t.dekoding_wh ?? 0) + Number(t.lesing_wh ?? 0);
+  const aiJoule = aiWh > 0 ? aiWh * 3600 : Number(t.kall) * 864;
   const sveivJoule = Number(t.joules);
   if (aiJoule <= 0) {
     return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
@@ -631,7 +673,7 @@ function nummerBoks() {
   const t = S.totaler;
   if (!t) return "";
   return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
-    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Du er nummer <span class="mono" style="color:#4ade80">${tall(t.spoersmaal)}</span> i dag. Til sammen har dere sveivet inn <span class="mono" style="color:#4ade80">${tall(t.joules)} J</span>.</div>
+    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Du er nummer <span class="mono" style="color:#4ade80">${tall(t.spoersmaal)}</span> i dag.${Number(t.joules) > 0 ? ` Til sammen har dere sveivet inn <span class="mono" style="color:#4ade80">${tall(t.joules)} J</span>.` : ""}</div>
   </div>`;
 }
 
@@ -650,7 +692,7 @@ function s7() {
   <div class="kol" style="gap:19px;height:100%">
     <div class="lbl" style="color:#4ade80">Ferdig</div>
     <div class="disp" style="font-size:33px;font-weight:700;line-height:1.13">Takk — svaret ditt er med i oppgaven</div>
-    <div style="font-size:15px;color:#9a9a9a;line-height:1.5">Helt anonymt. Ingenting om deg er lagret, bare tallene og det du svarte.</div>
+    <div style="font-size:15px;color:#9a9a9a;line-height:1.5">Helt anonymt. Ingenting som kan identifisere deg er lagret — bare tallene og det du svarte.</div>
 
     ${r ? `<div class="kol" style="gap:12px;padding:18px 19px;background:#111;border:1px solid #282828;border-radius:12px">
       <div class="lbl">Din måling</div>
