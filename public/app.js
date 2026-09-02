@@ -393,7 +393,7 @@ function s0() {
     <div class="kol" style="gap:11px;margin-top:6px">
       ${alt.map((a) => `<div class="svar" data-handling="svar1" data-verdi="${esc(a)}">${a}</div>`).join("")}
     </div>
-    <div style="margin-top:auto;display:flex;gap:11px;padding:15px 17px;background:#111;border:1px solid #282828;border-radius:11px">
+    <div style="margin-top:auto;display:flex;gap:11px;">
       <div class="fin">Helt anonymt. Ingen innlogging, og ingenting som kan identifisere deg lagres. Svarene brukes i masteroppgaven min.</div>
     </div>
     ${køLinje()}
