@@ -212,7 +212,7 @@ function tegn() {
       <span class="mono disp${nytt("iRunden", Math.round(iRunden))}" style="font-size:30px;font-weight:500;color:#4ade80">${sep(iRunden)} <span style="font-size:20px;color:#8a8a8a">/ ${sep(MAAL_JOULE)} J</span></span>
     </div>
     <div style="height:44px;background:#1c1c1c;border-radius:10px;overflow:hidden">
-      <div style="width:${andel}%;height:100%;background:#4ade80;border-radius:10px;transition:width .6s ease-out"></div>
+      <div style="width:${andel}%;height:100%;background:#4ade80;border-radius:10px" class="fyll"></div>
     </div>
     <div style="display:flex;justify-content:space-between">
       <span style="font-size:17px;color:#9a9a9a">Dere mangler ${sep(mangler)} joule</span>
