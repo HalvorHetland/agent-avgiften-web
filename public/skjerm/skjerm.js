@@ -139,7 +139,7 @@ function qrMarkup() {
     onerror="this.replaceWith(Object.assign(document.createElement('div'),{
       className:'qr-mangler',
       textContent:'[QR-kode settes inn]',
-      style:'width:136px;height:136px;flex-shrink:0;border:2px dashed #3d3d3d;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#5a5a5a;padding:10px;line-height:1.4'
+      style:'width:136px;height:136px;flex-shrink:0;border:2px dashed #3d3d3d;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#767676;padding:10px;line-height:1.4'
     }))">`;
 }
 
@@ -189,7 +189,7 @@ function enheter(d) {
  * ord. Handoffen er tydelig: fritekst blir på telefonen. */
 function sisteMaalinger() {
   if (!SISTE.length) {
-    return `<div style="font-size:17px;color:#5a5a5a">Ingen målinger enda i dag.</div>`;
+    return `<div style="font-size:17px;color:#767676">Ingen målinger enda i dag.</div>`;
   }
   return SISTE.slice(0, 6).map((m) => {
     const side = String(m.side).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
@@ -246,7 +246,7 @@ function tegn() {
             <div class="mono disp${nytt("raa", d.raa)}" style="font-size:76px;font-weight:500;line-height:0.9;color:#f97316">${sep(d.raa)}</div>
             <div style="font-size:20px;color:#9a9a9a">tokens</div>
           </div>
-          <div style="font-size:15px;color:#6b6b6b">slik nettet er i dag</div>
+          <div style="font-size:15px;color:#8a8a8a">slik nettet er i dag</div>
         </div>
         <div class="kol" style="gap:2px;padding-left:30px;border-left:1px solid #282828">
           <div style="display:flex;align-items:baseline;gap:10px">
@@ -274,7 +274,7 @@ function tegn() {
         </div>
       </div>
 
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.4">Tokens er tekstbitene AI-en leser og betaler for. Omtrent tre bokstaver hver.</div>
+      <div style="font-size:15px;color:#8a8a8a;line-height:1.4">Tokens er tekstbitene AI-en leser og betaler for. Omtrent tre bokstaver hver.</div>
 
       <div style="display:flex;margin-top:auto;padding-top:20px;border-top:1px solid #282828">
         <div class="stat">
@@ -294,13 +294,13 @@ function tegn() {
 
     <div class="kort kol" style="width:470px;flex-shrink:0;gap:14px;padding:28px 30px">
       <div class="lbl">Siste innleverte</div>
-      <div style="display:flex;gap:14px;font-size:13px;color:#5a5a5a;padding-bottom:2px">
+      <div style="display:flex;gap:14px;font-size:13px;color:#767676;padding-bottom:2px">
         <span style="width:150px">side</span><span style="width:88px;text-align:right">AI-en leste</span>
         <span style="width:12px"></span><span style="width:62px;text-align:right">teksten</span>
         <span style="margin-left:auto">forskjell</span>
       </div>
       <div class="kol" style="min-height:0;overflow:hidden">${sisteMaalinger()}</div>
-      <div class="fin" style="margin-top:auto;font-size:13px;color:#5a5a5a;line-height:1.45">
+      <div class="fin" style="margin-top:auto;font-size:13px;color:#767676;line-height:1.45">
         Spørsmålene blir på telefonene. Her står bare side og tall.${d.kuttede > 0 ? " <span style='color:#fbbf24'>+</span> betyr at siden var for stor og ble kuttet." : ""}
       </div>
     </div>
@@ -319,7 +319,7 @@ function tegn() {
             <span class="mono" style="font-size:18px;color:#fb923c">${komma(d.lesingWh)} Wh</span>
           </div>
           <div style="height:26px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
-          <div style="font-size:14px;color:#6b6b6b">bånd: ${komma(d.lesingMin)} til ${komma(d.lesingMaks)} Wh</div>
+          <div style="font-size:14px;color:#8a8a8a">bånd: ${komma(d.lesingMin)} til ${komma(d.lesingMaks)} Wh</div>
         </div>
         <div class="kol" style="gap:6px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
@@ -327,11 +327,11 @@ function tegn() {
             <span class="mono" style="font-size:18px;color:#4ade80">${komma(d.dekodingWh)} Wh</span>
           </div>
           <div style="height:26px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:${Math.max(1.2, (d.dekodingWh / Math.max(d.lesingWh, 0.001)) * 100)}%;min-width:5px;height:100%;background:#4ade80"></div></div>
-          <div style="font-size:14px;color:#6b6b6b">selve svaret koster lite</div>
+          <div style="font-size:14px;color:#8a8a8a">selve svaret koster lite</div>
         </div>
       </div>` : `
       <div class="kol" style="gap:10px;flex-grow:1;justify-content:center">
-        <div style="font-size:17px;color:#5a5a5a;line-height:1.5">Ingen målinger med metode enda.</div>
+        <div style="font-size:17px;color:#767676;line-height:1.5">Ingen målinger med metode enda.</div>
       </div>`}
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
@@ -350,7 +350,7 @@ function tegn() {
     ${e.map((x) => `<div class="kort kol" style="flex:1;gap:4px;padding:20px 24px;min-width:0">
       <div class="mono disp" style="font-size:34px;font-weight:500;line-height:1;color:#ededed">${x.tall}</div>
       <div style="font-size:16px;color:#9a9a9a;line-height:1.3">${x.navn}</div>
-      <div style="font-size:13px;color:#5a5a5a;margin-top:2px">${x.fin}</div>
+      <div style="font-size:13px;color:#767676;margin-top:2px">${x.fin}</div>
     </div>`).join("")}
   </div>
 
@@ -362,13 +362,13 @@ function tegn() {
     <div style="width:1px;align-self:stretch;background:#282828"></div>
     <div class="kol" style="gap:6px;flex-grow:1">
       <div style="font-size:20px;color:#ededed;line-height:1.45">Sveiva står ved <span style="color:#4ade80">fellesskjermen</span>. Her måles bare forbruket; der borte lager rommet strøm mot begge stasjonene til sammen.</div>
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">${d.harMetode
+      <div style="font-size:15px;color:#8a8a8a;line-height:1.5">${d.harMetode
         ? "Strømmen er regnet ut, ikke målt — ingen leverandør oppgir hvor mye ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og lesingen er den klart største posten. Det er nettopp den de vanlige metodene hopper over. Vi oppgir alltid det laveste anslaget. Beregningen bygger på EcoLogits og Epoch AI, og er dokumentert med kilder."
         : "Strømmen er regnet ut, ikke målt: 0,24 Wh per spørsmål, målt av Google i 2025 på en gjennomsnittlig forespørsel. Det laveste anslaget, ikke et gjennomsnitt."}</div>
     </div>
     <div class="kol" style="gap:5px;flex-shrink:0;align-items:flex-end;padding-left:26px;border-left:1px solid #282828">
-      <div class="mono" style="font-size:19px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#6b6b6b"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
-      <div style="font-size:14px;color:#5a5a5a">av dagens budsjett</div>
+      <div class="mono" style="font-size:19px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#8a8a8a"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
+      <div style="font-size:14px;color:#767676">av dagens budsjett</div>
     </div>
   </div>`;
 }

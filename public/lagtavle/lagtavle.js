@@ -95,7 +95,7 @@ function arealdiagram(bredde, hoyde) {
   // våre kall og Gjermunds chatbot-økter. Den grønne er sveivet energi,
   // akkumulert fra crank_runs. Begge i Wh, som er poenget: nå deler vi enhet.
   if (FORLOEP.length < 2) {
-    return `<div style="height:${hoyde}px;display:flex;align-items:center;justify-content:center;color:#5a5a5a;font-size:18px">
+    return `<div style="height:${hoyde}px;display:flex;align-items:center;justify-content:center;color:#767676;font-size:18px">
       Diagrammet tegner seg når standen har vært i gang en stund.</div>`;
   }
 
@@ -135,7 +135,7 @@ function arealdiagram(bredde, hoyde) {
   const linjer = [0, 0.25, 0.5, 0.75, 1].map((f) => {
     const wh = maks * f;
     return `<line x1="${P.v}" y1="${y(wh)}" x2="${bredde - P.h}" y2="${y(wh)}" stroke="#1c1c1c" stroke-width="1"/>
-      <text x="${P.v - 9}" y="${y(wh) + 5}" text-anchor="end" fill="#5a5a5a" font-size="13"
+      <text x="${P.v - 9}" y="${y(wh) + 5}" text-anchor="end" fill="#767676" font-size="13"
         font-family="IBM Plex Mono, monospace">${komma(wh, wh < 10 ? 1 : 0)}${f === 1 ? " Wh" : ""}</text>`;
   }).join("");
 
@@ -149,8 +149,8 @@ function arealdiagram(bredde, hoyde) {
     <polygon points="${skille} ${bunn}" fill="#4ade80" fill-opacity="0.9"/>
     <polyline points="${topp}" fill="none" stroke="#fb923c" stroke-width="2"/>
     ${harSveiv ? `<polyline points="${skille}" fill="none" stroke="#86efac" stroke-width="2"/>` : ""}
-    <text x="${P.v}" y="${hoyde - 7}" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t0)}</text>
-    <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t1)}</text>
+    <text x="${P.v}" y="${hoyde - 7}" fill="#767676" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t0)}</text>
+    <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#767676" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t1)}</text>
     ${harSveiv ? "" : `<rect x="${P.v + 8}" y="${P.t + ih / 2 - 19}" width="372" height="30" rx="7" fill="#0a0a0a" fill-opacity="0.88"/>
       <text x="${P.v + 20}" y="${P.t + ih / 2 + 1}" fill="#cfcfcf" font-size="17"
       font-family="IBM Plex Sans, sans-serif">Grønt bånd kommer når sveiva er koblet til</text>`}
@@ -204,7 +204,7 @@ function tegn() {
   <div class="kol" style="gap:12px;padding:22px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv ? "none" : "flex"}">
     <div style="display:flex;justify-content:space-between;align-items:baseline">
       <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ti spørsmål</span>
-      <span class="mono disp${nytt("iRunden", Math.round(iRunden))}" style="font-size:30px;font-weight:500;color:#4ade80">${sep(iRunden)} <span style="font-size:20px;color:#6b6b6b">/ ${sep(MAAL_JOULE)} J</span></span>
+      <span class="mono disp${nytt("iRunden", Math.round(iRunden))}" style="font-size:30px;font-weight:500;color:#4ade80">${sep(iRunden)} <span style="font-size:20px;color:#8a8a8a">/ ${sep(MAAL_JOULE)} J</span></span>
     </div>
     <div style="height:44px;background:#1c1c1c;border-radius:10px;overflow:hidden">
       <div style="width:${andel}%;height:100%;background:#4ade80;border-radius:10px;transition:width .6s ease-out"></div>
@@ -232,7 +232,7 @@ function tegn() {
         </div>
       </div>
       <div id="grafboks" style="flex-grow:1;min-height:0"></div>
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.5;margin-top:-4px">
+      <div style="font-size:15px;color:#8a8a8a;line-height:1.5;margin-top:-4px">
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
         har laget selv — resten er kjøpt.${FELLES ? " Kurven er den felles potten — begge stasjonene." : ""}
       </div>
@@ -266,7 +266,7 @@ function tegn() {
       <div class="kol" style="gap:14px;margin-top:2px">
         <div class="kol" style="gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:20px;color:#ededed">Halvor <span style="font-size:15px;color:#6b6b6b">— nettsidelesing</span></span>
+            <span style="font-size:20px;color:#ededed">Halvor <span style="font-size:15px;color:#8a8a8a">— nettsidelesing</span></span>
             <span class="mono" style="font-size:20px;color:#818cf8">${komma(vaarWh, 2)} Wh</span>
           </div>
           <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
@@ -275,7 +275,7 @@ function tegn() {
         </div>
         <div class="kol" style="gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:20px;color:#ededed">Gjermund <span style="font-size:15px;color:#6b6b6b">— chatbot</span></span>
+            <span style="font-size:20px;color:#ededed">Gjermund <span style="font-size:15px;color:#8a8a8a">— chatbot</span></span>
             <span class="mono" style="font-size:20px;color:#a78bfa">${komma(hansWh, 2)} Wh</span>
           </div>
           <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
@@ -297,7 +297,7 @@ function tegn() {
         </div>
       </div>
 
-      <div style="font-size:14px;color:#5a5a5a;line-height:1.45;margin-top:2px">
+      <div style="font-size:14px;color:#767676;line-height:1.45;margin-top:2px">
         Tokentallene er målt. Strømmen er regnet ut — ingen leverandør oppgir hvor
         mye ett spørsmål bruker. Begge stasjonene regner både det å lese og det å
         svare${vaarLesing > 0 ? `; hos Halvor går ${komma((vaarLesing / Math.max(vaarWh, 0.001)) * 100, 0)} % av strømmen til lesingen alene` : ""}.
@@ -319,7 +319,7 @@ function tegn() {
   </div>
 
   <div style="display:flex;align-items:center;gap:30px;padding:20px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
-    <div class="mono disp" style="font-size:48px;font-weight:500;line-height:1;color:${ingenSveiv ? "#5a5a5a" : "#fbbf24"};flex-shrink:0">${ingenSveiv ? "—" : (dekning > 0 && dekning < 1 ? komma(dekning) : Math.round(dekning)) + " %"}</div>
+    <div class="mono disp" style="font-size:48px;font-weight:500;line-height:1;color:${ingenSveiv ? "#767676" : "#fbbf24"};flex-shrink:0">${ingenSveiv ? "—" : (dekning > 0 && dekning < 1 ? komma(dekning) : Math.round(dekning)) + " %"}</div>
     <div class="kol" style="gap:5px;flex-grow:1">
       <div style="font-size:20px;color:#ededed;line-height:1.45">${
         ingenSveiv
@@ -328,7 +328,7 @@ function tegn() {
           ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
           : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
       }</div>
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
+      <div style="font-size:15px;color:#8a8a8a;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
     </div>
   </div>`;
 

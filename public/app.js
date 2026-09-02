@@ -489,9 +489,9 @@ function laster() {
       <div class="kol" style="gap:3px;flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
           <span style="font-size:16px;color:${status === "vent" ? "#5a5a5a" : "#ededed"}">${tittel}</span>
-          ${verdi ? `<span class="mono" style="font-size:15px;color:${status === "ok" ? "#4ade80" : "#6b6b6b"};flex-shrink:0">${verdi}</span>` : ""}
+          ${verdi ? `<span class="mono" style="font-size:15px;color:${status === "ok" ? "#4ade80" : "#8a8a8a"};flex-shrink:0">${verdi}</span>` : ""}
         </div>
-        ${undertekst ? `<div style="font-size:13px;color:#6b6b6b;line-height:1.4">${undertekst}</div>` : ""}
+        ${undertekst ? `<div style="font-size:13px;color:#8a8a8a;line-height:1.4">${undertekst}</div>` : ""}
       </div>
     </div>`;
   };
@@ -529,7 +529,7 @@ function laster() {
     <div style="margin-top:auto;height:5px;background:#1c1c1c;border-radius:999px;overflow:hidden">
       <div class="skyv" style="height:100%;background:#f97316;border-radius:999px"></div>
     </div>`}
-    <div style="text-align:center;font-size:13.5px;color:#6b6b6b">${
+    <div style="text-align:center;font-size:13.5px;color:#8a8a8a">${
       S.klar ? "Ingen tall er gjettet. Alt du ser er målt."
       : f === "sender" ? "Den store versjonen tar lengst tid."
       : "Ingen tall er gjettet. Alt du ser er målt."
@@ -579,7 +579,7 @@ function s3() {
     </div>
     <div style="display:flex;align-items:center;gap:14px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
       <div class="mono disp" style="font-size:38px;font-weight:500;line-height:1;color:#fb923c;flex-shrink:0">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye mer måtte AI-en lese enn selve teksten på siden<br><span style="color:#6b6b6b">tokens = tekstbitene den betaler for</span></div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye mer måtte AI-en lese enn selve teksten på siden<br><span style="color:#8a8a8a">tokens = tekstbitene den betaler for</span></div>
     </div>
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Som å kjøre <b>${tall(meter)} meter</b> i elbil for å hente noe som ligger <b>én meter</b> unna.</div>
@@ -769,7 +769,7 @@ function ferdig() {
     <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15">Takk for at du bidro</div>
     <div style="font-size:15.5px;color:#9a9a9a;line-height:1.55;max-width:280px">Målingene dine er en del av datagrunnlaget i masteroppgaven om hva det koster en AI å lese nettsider.</div>
     <div style="font-size:14px;color:#5a5a5a;line-height:1.5;max-width:280px">Ta gjerne en titt på storskjermen — tallene dine er allerede med der.</div>
-    <div class="btn-ghost" data-handling="påNytt" style="margin-top:14px;padding:0 26px"><span style="font-size:16px;color:#6b6b6b">Start på nytt</span></div>
+    <div class="btn-ghost" data-handling="påNytt" style="margin-top:14px;padding:0 26px"><span style="font-size:16px;color:#8a8a8a">Start på nytt</span></div>
   </div>`;
 }
 
