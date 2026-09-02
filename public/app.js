@@ -572,12 +572,33 @@ function s3() {
 
 function s4() {
   const alt = ["Nettstedene — de burde være lettere å lese", "AI-selskapene — de burde lese smartere", "Begge to", "Det er greit som det er"];
+
+  /* «Hvem burde gjøre noe med DETTE?» forutsetter at man husker tallet fra
+   * forrige skjerm. Førsteårsstudenter som nettopp har sett ett tall én gang
+   * gjør ikke nødvendigvis det, så vi gjentar funnet med deres egne tall og
+   * sier hva som faktisk var i de tokenene. Uten måling: den generelle
+   * formuleringen, aldri et oppdiktet tall. */
+  const r = S.resultat;
+  const forhold = r ? Math.round(r.raa.input_tokens / r.rein.input_tokens) : null;
+  const forklaring = r
+    ? `For å svare deg måtte assistenten lese <span class="mono" style="color:#fb923c">${tall(r.raa.input_tokens)}</span> tokens.
+       Bare <span class="mono" style="color:#4ade80">${tall(r.rein.input_tokens)}</span> av dem var teksten et menneske ville lest
+       — resten var kode, menyer, sporingsskript og cookie-bannere.
+       <b>${forhold} ganger mer enn nødvendig</b>, og det skjer på nytt hver gang noen spør.`
+    : `En AI som skal svare om en nettside må lese hele siden slik den er kodet
+       — kode, menyer, sporingsskript og cookie-bannere — ikke bare teksten du ser.
+       Det koster strøm på nytt hver gang noen spør.`;
+
   return `
-  <div class="kol" style="gap:20px;height:100%">
+  <div class="kol" style="gap:16px;height:100%;overflow-y:auto">
     <div class="lbl" style="color:#f97316">Ett spørsmål til</div>
-    <div class="disp" style="font-size:31px;font-weight:700;line-height:1.15">${SP2}</div>
-    <div style="font-size:15px;color:#9a9a9a;line-height:1.5">Det finnes ikke noe fasitsvar. Vi vil vite hva du mener nå som du har sett tallet.</div>
-    <div class="kol" style="gap:11px;margin-top:4px">
+    <div class="disp" style="font-size:29px;font-weight:700;line-height:1.15">${SP2}</div>
+    <div class="kol" style="gap:7px;padding:15px 16px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px;flex-shrink:0">
+      <div class="lbl" style="font-size:12px">Det du nettopp så</div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.55">${forklaring}</div>
+    </div>
+    <div style="font-size:14.5px;color:#9a9a9a;line-height:1.5">Det finnes ikke noe fasitsvar. Vi vil vite hva du mener.</div>
+    <div class="kol" style="gap:11px;flex-shrink:0;padding-bottom:4px">
       ${alt.map((a) => `<div class="svar" data-handling="svar2" data-verdi="${esc(a)}">${a}</div>`).join("")}
     </div>
   </div>`;
