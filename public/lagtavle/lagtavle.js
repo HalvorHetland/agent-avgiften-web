@@ -151,7 +151,8 @@ function arealdiagram(bredde, hoyde) {
     ${harSveiv ? `<polyline points="${skille}" fill="none" stroke="#86efac" stroke-width="2"/>` : ""}
     <text x="${P.v}" y="${hoyde - 7}" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t0)}</text>
     <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t1)}</text>
-    ${harSveiv ? "" : `<text x="${P.v + 16}" y="${P.t + ih / 2}" fill="#6b6b6b" font-size="17"
+    ${harSveiv ? "" : `<rect x="${P.v + 8}" y="${P.t + ih / 2 - 19}" width="372" height="30" rx="7" fill="#0a0a0a" fill-opacity="0.88"/>
+      <text x="${P.v + 20}" y="${P.t + ih / 2 + 1}" fill="#cfcfcf" font-size="17"
       font-family="IBM Plex Sans, sans-serif">Grønt bånd kommer når sveiva er koblet til</text>`}
   </svg>`;
 }
