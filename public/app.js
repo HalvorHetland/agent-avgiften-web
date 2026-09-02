@@ -690,7 +690,7 @@ function s6() {
   <div class="kol" style="gap:18px;height:100%">
     <div class="lbl" style="color:#4ade80">Takk</div>
     <div class="disp" style="font-size:31px;font-weight:700;line-height:1.15">Hva overrasket deg?</div>
-    <textarea id="fritekst" maxlength="500" placeholder="Skriv én setning … (frivillig)"
+    <textarea id="fritekst" maxlength="500" aria-label="Hva overrasket deg? Frivillig" placeholder="Skriv én setning … (frivillig)"
       style="width:100%;height:120px;resize:none;padding:15px 16px;background:#111;border:1px solid #4f46e5;border-radius:11px;color:#ededed;font-family:inherit;font-size:16px;line-height:1.5;outline:none">${esc(S.fritekst)}</textarea>
     <div class="fin">Svaret er anonymt og kan bli sitert i oppgaven. Ikke skriv noe som kan identifisere deg.</div>
     ${nummerBoks()}
