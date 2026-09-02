@@ -313,7 +313,7 @@ function tegn() {
         <div class="stat">
           <div class="mono disp statTall">${komma(aiWh / MOBIL_WH, 1)}</div>
           <div class="statNavn">mobilladinger til sammen</div>
-          <div style="font-size:12.5px;color:#4a4a4a;margin-top:2px">${komma(MOBIL_WH, 0)} Wh per full lading</div>
+          <div style="font-size:12.5px;color:#767676;margin-top:2px">${komma(MOBIL_WH, 0)} Wh per full lading</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
