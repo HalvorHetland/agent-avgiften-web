@@ -306,7 +306,7 @@ function tegn() {
     </div>
 
     <div class="kort kol" style="width:470px;flex-shrink:0;gap:16px;padding:28px 30px;border-color:#3a2412">
-      <div class="lbl" style="color:#fb923c">Strøm brukt her</div>
+      <div class="lbl" style="color:#f97316">Strøm brukt her</div>
       <div style="display:flex;align-items:baseline;gap:12px">
         <div class="mono disp${nytt("wh", Math.round(d.aiWh * 100))}" style="font-size:64px;font-weight:500;line-height:0.9;color:#fb923c">${komma(d.aiWh)}</div>
         <div style="font-size:20px;color:#9a9a9a">Wh</div>
