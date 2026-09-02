@@ -525,7 +525,8 @@ function s3() {
   const bredde = Math.max(0.6, (rein.input_tokens / raa.input_tokens) * 100);
   const meter = Math.round(forhold);
   return `
-  <div class="kol" style="gap:16px;height:100%;overflow-y:auto">
+  <div class="kol" style="gap:14px;height:100%">
+   <div class="kol" style="gap:16px;overflow-y:auto;flex:1;min-height:0">
     <div class="kol" style="gap:7px">
       <div class="lbl" style="color:#f97316">Steg 2 av 3</div>
       <div class="disp" style="font-size:27px;font-weight:700;line-height:1.15">To svar, to helt ulike regninger</div>
@@ -560,6 +561,8 @@ function s3() {
       <div class="mono disp" style="font-size:38px;font-weight:500;line-height:1;color:#fb923c;flex-shrink:0">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</div>
       <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye tekst måtte AI-en lese for nøyaktig samme svar<br><span style="color:#6b6b6b">tokens = tekstbitene den betaler for</span></div>
     </div>
+    ${S.malt && S.malt.raa_tegn && S.malt.reint_tegn ? `
+    <div class="fin" style="line-height:1.5;margin-top:-6px">I tegn var forskjellen ${komma(S.malt.raa_tegn / S.malt.reint_tegn, 1)}×, i tokens ${komma(forhold, 1)}×. Kode og menyer deles opp i flere biter enn vanlig tekst, så regningen vokser raskere enn tekstmengden.</div>` : ""}
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Som å kjøre <b>${tall(meter)} meter</b> i elbil for å hente noe som ligger <b>én meter</b> unna.</div>
       <div class="fin">Et bilde på forholdet, ikke et energitall.</div>
@@ -567,7 +570,8 @@ function s3() {
     ${raa.truncated ? `<div class="kol" style="gap:6px;padding:14px 16px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:14px;color:#ededed;line-height:1.45">Siden var for stor til å sendes hel. Vi sendte de første <span class="mono">${tall(raa.input_tokens)}</span> tokenene.</div>
       <div class="fin">Det ekte tallet er altså høyere enn det som står over.</div></div>` : ""}
-    <div class="btn" data-gaa="4" style="margin-top:auto;flex-shrink:0">
+   </div>
+    <div class="btn" data-gaa="4" style="flex-shrink:0">
       <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Videre</span>
     </div>
   </div>`;
