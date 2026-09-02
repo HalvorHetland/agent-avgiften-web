@@ -181,7 +181,7 @@ function tegn() {
   const vaarWh = T ? Number(T.dekoding_wh) + Number(T.lesing_wh) : 0;
   const vaarLesing = T ? Number(T.lesing_wh) : 0;
   const hansWh = Math.max(0, aiWh - vaarWh);
-  const maksWh = Math.max(vaarWh, hansWh, 0.001);
+  const maksWh = Math.max(vaarWh, hansWh, wh, 0.001);
   const dekning = aiWh > 0 ? (wh / aiWh) * 100 : 0;
   // Sveivehalvdelen bygges av Gjermund. Før den skriver til crank_runs skal
   // skjermen si at tallet mangler, ikke vise 0 % som om rommet hadde sveivet.
@@ -231,23 +231,15 @@ function tegn() {
           </div>
         </div>
       </div>
-      ${arealdiagram(1166, 300)}
+      <div id="grafboks" style="flex-grow:1;min-height:0"></div>
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5;margin-top:-4px">
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
         har laget selv — resten er kjøpt.${FELLES ? " Kurven er den felles potten — begge stasjonene." : ""}
       </div>
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
-          <div class="mono disp statTall${nytt("joules", joules)}" style="color:#4ade80">${sep(joules)}</div>
-          <div class="statNavn">joule i potten</div>
-        </div>
-        <div class="stat">
-          <div class="mono disp statTall${nytt("oekter", T ? T.sveiveoekter : 0)}">${sep(T ? T.sveiveoekter : 0)}</div>
-          <div class="statNavn">sveiveøkter</div>
-        </div>
-        <div class="stat">
-          <div class="mono disp statTall">${komma(wh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
-          <div class="statNavn">sveivet, samlet</div>
+          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${komma(wh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
+          <div class="statNavn">sveivet inn</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall${nytt("aiWh", Math.round(aiWh * 10))}" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
@@ -261,7 +253,7 @@ function tegn() {
     </div>
 
     <div class="kort kol" style="width:540px;flex-shrink:0;gap:16px;padding:26px 30px;border-color:#3a2412">
-      <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt — begge stasjonene til sammen</div>
+      <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt og laget — hele rommet</div>
       <div style="display:flex;align-items:baseline;gap:12px">
         <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:58px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
         <div style="font-size:20px;color:#9a9a9a">Wh</div>
@@ -290,13 +282,26 @@ function tegn() {
             <div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div>
           </div>
         </div>
+
+        <!-- Sveiva er den eneste MÅLTE størrelsen i panelet, og den peker
+             motsatt vei av de to over: laget, ikke brukt. Skillelinja og den
+             grønne fargen holder de to regnskapene fra hverandre. -->
+        <div class="kol" style="gap:8px;padding-top:14px;border-top:1px solid #282828">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:20px;color:#ededed">Sveiva <span style="font-size:15px;color:#4ade80">— laget av rommet</span></span>
+            <span class="mono" style="font-size:20px;color:#4ade80">${ingenSveiv ? "ikke koblet til" : komma(wh, 2) + " Wh"}</span>
+          </div>
+          <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
+            <div style="width:${ingenSveiv ? 0 : Math.max(0.4, (wh / maksWh) * 100)}%;height:100%;background:#4ade80"></div>
+          </div>
+        </div>
       </div>
 
       <div style="font-size:14px;color:#5a5a5a;line-height:1.45;margin-top:2px">
         Tokens er målt. Energi er modellert — ingen leverandør oppgir joule per
         forespørsel. Halvor: EcoLogits for svaret pluss et FLOP-basert
         leseestimat${vaarLesing > 0 ? ` (lesingen er ${komma((vaarLesing / Math.max(vaarWh, 0.001)) * 100, 0)} % av hans andel)` : ""}.
-        Gjermund: EcoLogits på gpt-5. Sveiva er derimot ekte målt.
+        Gjermund: EcoLogits på gpt-5. Sveiva er derimot ekte målt — volt ganger ampere ganger tid.
       </div>
 
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
@@ -326,6 +331,16 @@ function tegn() {
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er modellert — 0,24 Wh per forespørsel (Google, 2025, median tekstforespørsel), et gulv og ikke et estimat. Det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
     </div>
   </div>`;
+
+  /* Diagrammet hadde fast høyde i et kort som vokser, så differansen ble død
+   * luft mellom grafen og talla. Brettet er en fast 1920x1080-scene, så den
+   * ledige høyden er stabil: vi måler den én gang etter at layouten har satt
+   * seg, og tegner grafen i akkurat den høyden. */
+  const boks = document.getElementById("grafboks");
+  if (boks) {
+    const h = Math.round(boks.clientHeight);
+    boks.innerHTML = arealdiagram(1166, h > 80 ? h : 300);
+  }
 }
 
 function skaler() {
