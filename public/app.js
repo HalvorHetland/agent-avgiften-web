@@ -308,6 +308,13 @@ function tegn() {
   app().querySelectorAll("[data-handling]").forEach((el) => {
     el.onclick = () => HANDLINGER[el.dataset.handling](el);
   });
+  /* Valgene er div-er, ikke knapper. Uten dette naas de ikke med tastatur
+   * eller skjermleser, og de faar ingen fokusring. */
+  app().querySelectorAll("[data-handling],[data-gaa]").forEach((el) => {
+    if (el.dataset.handling === "ingenting") return;
+    el.setAttribute("role", "button"); el.tabIndex = 0;
+    el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.click(); } };
+  });
   // Oppgave-tekstboksen er borte; aktiviteten velges nå fra en liste.
   // Sluttskjermens fritekst står igjen — den er frivillig og går ikke til
   // modellen, bare til free_text.
