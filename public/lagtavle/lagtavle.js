@@ -136,7 +136,7 @@ function arealdiagram(bredde, hoyde) {
     const wh = maks * f;
     return `<line x1="${P.v}" y1="${y(wh)}" x2="${bredde - P.h}" y2="${y(wh)}" stroke="#1c1c1c" stroke-width="1"/>
       <text x="${P.v - 9}" y="${y(wh) + 5}" text-anchor="end" fill="#5a5a5a" font-size="13"
-        font-family="IBM Plex Mono, monospace">${komma(wh, wh < 10 ? 1 : 0)}</text>`;
+        font-family="IBM Plex Mono, monospace">${komma(wh, wh < 10 ? 1 : 0)}${f === 1 ? " Wh" : ""}</text>`;
   }).join("");
 
   const klokke = (ms) => new Date(ms).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
@@ -151,7 +151,6 @@ function arealdiagram(bredde, hoyde) {
     ${harSveiv ? `<polyline points="${skille}" fill="none" stroke="#86efac" stroke-width="2"/>` : ""}
     <text x="${P.v}" y="${hoyde - 7}" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t0)}</text>
     <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#5a5a5a" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t1)}</text>
-    <text x="${P.v - 9}" y="${P.t - 2}" text-anchor="end" fill="#5a5a5a" font-size="12" font-family="IBM Plex Sans, sans-serif">Wh</text>
     ${harSveiv ? "" : `<text x="${P.v + 16}" y="${P.t + ih / 2}" fill="#6b6b6b" font-size="17"
       font-family="IBM Plex Sans, sans-serif">Grønt bånd kommer når sveiva er koblet til</text>`}
   </svg>`;
