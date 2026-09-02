@@ -561,7 +561,7 @@ function s3() {
     </div>
     <div style="display:flex;align-items:center;gap:14px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
       <div class="mono disp" style="font-size:38px;font-weight:500;line-height:1;color:#fb923c;flex-shrink:0">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye mer tekst måtte AI-en lese på den kodede versjonen<br><span style="color:#6b6b6b">tokens = tekstbitene den betaler for</span></div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye mer tekst måtte AI-en lese enn du ville gjort selv<br><span style="color:#6b6b6b">tokens = tekstbitene den betaler for</span></div>
     </div>
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Som å kjøre <b>${tall(meter)} meter</b> i elbil for å hente noe som ligger <b>én meter</b> unna.</div>
