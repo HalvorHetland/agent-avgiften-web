@@ -363,8 +363,8 @@ function tegn() {
     <div class="kol" style="gap:6px;flex-grow:1">
       <div style="font-size:20px;color:#ededed;line-height:1.45">Sveiva står ved <span style="color:#4ade80">fellesskjermen</span>. Her måles bare forbruket; der borte lager rommet strøm mot begge stasjonene til sammen.</div>
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5">${d.harMetode
-        ? "Energi: EcoLogits 0.11.1 for svaret pluss et FLOP-basert leseestimat (Epoch AI-forankret, MFU 10–30 %). Lesingen dominerer — det er den de vanlige verktøyene ikke regner. Attention-leddet er utelatt, så tallet er et gulv."
-        : "Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Et gulv, ikke et estimat."}</div>
+        ? "Strømmen er regnet ut, ikke målt — ingen leverandør oppgir hvor mye ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og lesingen er den klart største posten. Det er nettopp den de vanlige metodene hopper over. Vi oppgir alltid det laveste anslaget. Beregningen bygger på EcoLogits og Epoch AI, og er dokumentert med kilder."
+        : "Strømmen er regnet ut, ikke målt: 0,24 Wh per spørsmål, målt av Google i 2025 på en gjennomsnittlig forespørsel. Det laveste anslaget, ikke et gjennomsnitt."}</div>
     </div>
     <div class="kol" style="gap:5px;flex-shrink:0;align-items:flex-end;padding-left:26px;border-left:1px solid #282828">
       <div class="mono" style="font-size:19px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#6b6b6b"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
