@@ -510,7 +510,7 @@ function laster() {
       <div class="boble boble-ai">${S.klar ? "Ferdig. Se hva det kostet." : "Jobber med det. Du kan se hva jeg gjør."}</div>
     </div>
 
-    <div class="kol" style="gap:5px;padding:6px 16px 10px;background:#111;border:1px solid #282828;border-radius:12px">
+    <div class="kol" aria-live="polite" style="gap:5px;padding:6px 16px 10px;background:#111;border:1px solid #282828;border-radius:12px">
       ${steg(0, `Åpner ${esc(S.side.navn)}`, m ? `${(m.hentet_ms / 1000).toFixed(1)} s` : "", "henter siden slik en maskin får den")}
       ${steg(1, "Leser hele siden", m ? `${tall(m.raa_tegn)} tegn` : "", "kode, menyer, cookie-banner, reklame — alt")}
       ${steg(1, "Plukker ut selve teksten", m ? `${tall(m.reint_tegn)} tegn` : "", "det du faktisk leser med øynene")}
