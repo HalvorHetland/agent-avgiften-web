@@ -566,7 +566,7 @@ function s3() {
         <div class="fin" style="color:#4ade80">Svar etter bare teksten</div>
         <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">«${esc(S.visSvar ? rein.answer : rein.answer.slice(0, 150) + (rein.answer.length > 150 ? " …" : ""))}»</div>
       </div>
-      ${raa.answer.length > 150 || rein.answer.length > 150 ? `<div class="fin" data-handling="visSvar" style="color:#818cf8;cursor:pointer">${S.visSvar ? "Vis mindre" : "Les hele svarene"}</div>` : ""}
+      ${raa.answer.length > 150 || rein.answer.length > 150 ? `<div class="fin" data-handling="visSvar" style="color:#818cf8;cursor:pointer;padding:13px 0;margin:-6px 0">${S.visSvar ? "Vis mindre" : "Les hele svarene"}</div>` : ""}
     </div>
     <div class="kol" style="gap:6px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
