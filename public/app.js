@@ -443,7 +443,7 @@ function s1() {
       <div class="btn${akt ? "" : " btn-av"}" data-handling="${akt ? "spor" : "ingenting"}">
         <span class="disp" style="font-size:18px;font-weight:700;color:${akt ? "#fff" : "#5a5a5a"}">Send til assistenten</span>
       </div>
-      <div class="fin">Assistenten gjør det samme to ganger: én gang med hele siden slik den er kodet, én gang med bare teksten. Du får se hva den faktisk leser.</div>
+      <div class="fin">Assistenten svarer to ganger: én gang etter å ha lest hele siden med kode og menyer, én gang etter bare teksten. Du får se forskjellen.</div>
     </div>
     ${køLinje()}
   </div>`;
@@ -534,28 +534,30 @@ function s3() {
     </div>
     <div class="kol" style="gap:9px">
       <div class="kol" style="gap:5px;padding:13px 15px;background:#141414;border:1px solid #282828;border-left:3px solid #f97316;border-radius:10px">
-        <div class="fin" style="color:#f97316">Svar etter hele siden slik den er kodet</div>
+        <div class="fin" style="color:#f97316">Svar etter å ha lest alt</div>
         <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">«${esc(S.visSvar ? raa.answer : raa.answer.slice(0, 150) + (raa.answer.length > 150 ? " …" : ""))}»</div>
       </div>
       <div class="kol" style="gap:5px;padding:13px 15px;background:#141414;border:1px solid #282828;border-left:3px solid #4ade80;border-radius:10px">
-        <div class="fin" style="color:#4ade80">Svar etter bare teksten på siden</div>
+        <div class="fin" style="color:#4ade80">Svar etter bare teksten</div>
         <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">«${esc(S.visSvar ? rein.answer : rein.answer.slice(0, 150) + (rein.answer.length > 150 ? " …" : ""))}»</div>
       </div>
       ${raa.answer.length > 150 || rein.answer.length > 150 ? `<div class="fin" data-handling="visSvar" style="color:#818cf8;cursor:pointer">${S.visSvar ? "Vis mindre" : "Les hele svarene"}</div>` : ""}
     </div>
-    <div class="kol" style="gap:8px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:14.5px;color:#ededed">Hele siden slik den er kodet</span>
-        <span class="mono disp" style="font-size:22px;font-weight:500;color:#f97316">${tall(raa.input_tokens)}</span>
+    <div class="kol" style="gap:6px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <span style="font-size:15px;color:#ededed">Alt AI-en måtte lese</span>
+        <span class="mono disp" style="font-size:22px;font-weight:500;color:#f97316">${tall(raa.input_tokens)} <span style="font-size:14px;color:#9a9a9a">tokens</span></span>
       </div>
       <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
+      <div class="fin">kode, menyer, reklame og cookie-bannere — alt som ligger bak siden</div>
     </div>
-    <div class="kol" style="gap:8px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:14.5px;color:#ededed">Bare teksten på siden</span>
-        <span class="mono disp" style="font-size:22px;font-weight:500;color:#4ade80">${tall(rein.input_tokens)}</span>
+    <div class="kol" style="gap:6px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+        <span style="font-size:15px;color:#ededed">Det du ville lest selv</span>
+        <span class="mono disp" style="font-size:22px;font-weight:500;color:#4ade80">${tall(rein.input_tokens)} <span style="font-size:14px;color:#9a9a9a">tokens</span></span>
       </div>
       <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${bredde}%;min-width:7px;height:100%;background:#4ade80"></div></div>
+      <div class="fin">bare teksten du ser med øynene</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
       <div class="mono disp" style="font-size:38px;font-weight:500;line-height:1;color:#fb923c;flex-shrink:0">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</div>
@@ -592,7 +594,7 @@ function s4() {
        Bare <span class="mono" style="color:#4ade80">${tall(r.rein.input_tokens)}</span> av dem var teksten et menneske ville lest
        — resten var kode, menyer, sporingsskript og cookie-bannere.
        <b>${forhold} ganger mer enn nødvendig</b>, og det skjer på nytt hver gang noen spør.`
-    : `En AI som skal svare om en nettside må lese hele siden slik den er kodet
+    : `En AI som skal svare om en nettside må lese alt som ligger bak den
        — kode, menyer, sporingsskript og cookie-bannere — ikke bare teksten du ser.
        Det koster strøm på nytt hver gang noen spør.`;
 
@@ -710,11 +712,11 @@ function s7() {
     ${r ? `<div class="kol" style="gap:12px;padding:18px 19px;background:#111;border:1px solid #282828;border-radius:12px">
       <div class="lbl">Din måling</div>
       <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:14.5px;color:#9a9a9a">Hele siden slik den er kodet</span>
+        <span style="font-size:14.5px;color:#9a9a9a">Alt AI-en måtte lese</span>
         <span class="mono" style="font-size:18px;color:#f97316">${tall(r.raa.input_tokens)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:14.5px;color:#9a9a9a">Bare teksten på siden</span>
+        <span style="font-size:14.5px;color:#9a9a9a">Det du ville lest selv</span>
         <span class="mono" style="font-size:18px;color:#4ade80">${tall(r.rein.input_tokens)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:11px;border-top:1px solid #282828">

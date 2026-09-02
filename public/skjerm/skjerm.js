@@ -260,14 +260,14 @@ function tegn() {
       <div class="kol" style="gap:12px">
         <div class="kol" style="gap:7px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:19px;color:#ededed">Hele siden slik den er kodet</span>
+            <span style="font-size:19px;color:#ededed">Alt AI-en måtte lese</span>
             <span class="mono" style="font-size:19px;color:#fb923c">${sep(d.raa)}</span>
           </div>
           <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
         </div>
         <div class="kol" style="gap:7px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:19px;color:#ededed">Bare teksten på siden</span>
+            <span style="font-size:19px;color:#ededed">Det et menneske ville lest</span>
             <span class="mono" style="font-size:19px;color:#4ade80">${sep(d.reint)}</span>
           </div>
           <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${reintBredde}%;min-width:6px;height:100%;background:#4ade80"></div></div>
