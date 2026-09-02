@@ -243,7 +243,7 @@ function tegn() {
         </div>
         <div class="stat">
           <div class="mono disp statTall${nytt("aiWh", Math.round(aiWh * 10))}" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
-          <div class="statNavn">brukt${FELLES ? " — felles pott" : ", antatt gulv"}</div>
+          <div class="statNavn">brukt${FELLES ? " — begge stasjonene" : ", laveste anslag"}</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall" style="color:#fb923c">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
@@ -323,12 +323,12 @@ function tegn() {
     <div class="kol" style="gap:5px;flex-grow:1">
       <div style="font-size:20px;color:#ededed;line-height:1.45">${
         ingenSveiv
-          ? "Sveiva er ikke koblet til enda. Tokentallene er ekte målinger; dekningen kommer når sveivesiden skriver til crank_runs."
+          ? "Sveiva er ikke koblet til enda. Tokentallene er ekte målinger; det grønne kommer så snart sveiva er på plass."
         : dekning >= 100
           ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
           : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
       }</div>
-      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er modellert — 0,24 Wh per forespørsel (Google, 2025, median tekstforespørsel), et gulv og ikke et estimat. Det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
+      <div style="font-size:15px;color:#6b6b6b;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
     </div>
   </div>`;
 

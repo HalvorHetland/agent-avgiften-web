@@ -504,7 +504,7 @@ function laster() {
     </div>
 
     <div class="kol" style="gap:5px;padding:6px 16px 10px;background:#111;border:1px solid #282828;border-radius:12px">
-      ${steg(0, `Åpner ${esc(S.side.navn)}`, m ? `${(m.hentet_ms / 1000).toFixed(1)} s` : "", "henter sida slik en agent får den")}
+      ${steg(0, `Åpner ${esc(S.side.navn)}`, m ? `${(m.hentet_ms / 1000).toFixed(1)} s` : "", "henter siden slik en maskin får den")}
       ${steg(1, "Leser hele siden", m ? `${tall(m.raa_tegn)} tegn` : "", "kode, menyer, cookie-banner, reklame — alt")}
       ${steg(1, "Plukker ut selve teksten", m ? `${tall(m.reint_tegn)} tegn` : "", "det du faktisk leser med øynene")}
       ${steg(2, "Spør modellen med begge versjonene", "", "samme spørsmål, to ulike sider")}
@@ -588,7 +588,7 @@ function s3() {
     ${S.malt && S.malt.raa_tegn && S.malt.reint_tegn ? `
     <div class="fin" style="line-height:1.5;margin-top:-6px">I tegn var forskjellen ${komma(S.malt.raa_tegn / S.malt.reint_tegn, 1)}×, i tokens ${komma(forhold, 1)}×. Kode og menyer deles opp i flere biter enn vanlig tekst, så regningen vokser raskere enn tekstmengden.</div>` : ""}
     ${raa.truncated ? `<div class="kol" style="gap:6px;padding:14px 16px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
-      <div style="font-size:14px;color:#ededed;line-height:1.45">Siden var for stor til å sendes hel. Vi sendte de første <span class="mono">${tall(raa.input_tokens)}</span> tokenene.</div>
+      <div style="font-size:14px;color:#ededed;line-height:1.45">Siden var for stor til å sendes hel. Vi sendte bare de første <span class="mono">${tall(raa.input_tokens)}</span> tekstbitene.</div>
       <div class="fin">Det ekte tallet er altså høyere enn det som står over.</div></div>` : ""}
    </div>
     <div class="btn" data-gaa="4" style="flex-shrink:0">
@@ -787,7 +787,7 @@ function budsjettSlutt() {
   <div class="kol" style="gap:17px;height:100%">
     <div class="lbl" style="color:#fbbf24">Dagens m\u00e5linger er brukt opp</div>
     <div class="disp" style="font-size:29px;font-weight:700;line-height:1.15">Vi har brukt opp budsjettet for i dag</div>
-    <div style="font-size:15px;color:#9a9a9a;line-height:1.5">Hvert sp\u00f8rsm\u00e5l standen stiller koster ekte penger, fordi tokens koster ekte penger. Det er ikke en feil \u2014 det er den samme regningen utstillingen handler om.</div>
+    <div style="font-size:15px;color:#9a9a9a;line-height:1.5">Hvert sp\u00f8rsm\u00e5l standen stiller koster ekte penger: vi betaler for hver tekstbit AI-en leser. Det er ikke en feil \u2014 det er den samme regningen utstillingen handler om.</div>
     <div class="kol" style="gap:8px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline">
         <span style="font-size:14.5px;color:#ededed">Brukt i dag</span>
@@ -799,7 +799,7 @@ function budsjettSlutt() {
       <div class="fin">av et budsjett p\u00e5 ${(b.budsjett_usd ?? 0).toFixed(2)} $</div>
     </div>
     <div class="kol" style="gap:11px;margin-top:auto">
-      <div class="btn" data-gaa="4"><span class="disp" style="font-size:19px;font-weight:700;color:#fff">G\u00e5 videre til sveiva</span></div>
+      <div class="btn" data-gaa="4"><span class="disp" style="font-size:19px;font-weight:700;color:#fff">Se hva det har kostet i dag</span></div>
     </div>
   </div>`;
 }
@@ -810,18 +810,18 @@ function blokkert() {
   return `
   <div class="kol" style="gap:17px;height:100%">
     <div class="lbl" style="color:#fbbf24">Ingen tilgang</div>
-    <div class="disp" style="font-size:29px;font-weight:700;line-height:1.15">Denne siden nektet agenten innsyn</div>
+    <div class="disp" style="font-size:29px;font-weight:700;line-height:1.15">Denne siden slapp ikke assistenten inn</div>
     <div class="mono" style="font-size:16px;color:#fbbf24">${esc(S.side.navn)} · HTTP ${S.feil.http_status ?? "403"}</div>
     <div class="kol" style="gap:9px;padding:16px 17px;background:#111;border:1px solid #282828;border-radius:11px">
       <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:15px;color:#ededed">Anonym agent</span>
+        <span style="font-size:15px;color:#ededed">Assistenten spurte</span>
         <span class="mono" style="font-size:16px;color:#fbbf24">Avvist</span>
       </div>
       <div style="font-size:14px;color:#9a9a9a;line-height:1.45">Serveren svarte ${S.feil.http_status ?? 403} før noe innhold ble sendt. Agenten fikk aldri se siden.${S.side.avviser ? " Denne siden avviser alle automatiske forespørsler, ikke bare denne — det er ikke tilfeldig." : ""}</div>
     </div>
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15.5px;color:#ededed;font-weight:600;line-height:1.4">Dette er ikke en feil i målingen</div>
-      <div style="font-size:14px;color:#cfcfcf;line-height:1.5">En side som stenger ute alt som ikke ser ut som en nettleser, stenger også ute assistenten du ber om hjelp. «Tilgjengelig for mennesker» og «tilgjengelig for maskiner» er to forskjellige spørsmål — og bare det ene blir målt i dag.</div>
+      <div style="font-size:14px;color:#cfcfcf;line-height:1.5">En side som stenger ute alt som ikke ser ut som et menneske med nettleser, stenger også ute assistenten du ber om hjelp. «Tilgjengelig for mennesker» og «tilgjengelig for maskiner» er to forskjellige spørsmål — og bare det ene blir målt i dag.</div>
     </div>
     <div class="btn" data-gaa="1" style="margin-top:auto">
       <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Prøv en annen side</span>

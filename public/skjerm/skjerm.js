@@ -274,6 +274,8 @@ function tegn() {
         </div>
       </div>
 
+      <div style="font-size:15px;color:#6b6b6b;line-height:1.4">Tokens er tekstbitene AI-en leser og betaler for. Omtrent tre bokstaver hver.</div>
+
       <div style="display:flex;margin-top:auto;padding-top:20px;border-top:1px solid #282828">
         <div class="stat">
           <div class="mono disp statTall${nytt("spm", d.spoersmaal)}">${sep(d.spoersmaal)}</div>
@@ -285,7 +287,7 @@ function tegn() {
         </div>
         <div class="stat">
           <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:#fb923c">${d.forhold < 10 ? komma(d.forhold) : sep(d.forhold)}<span style="font-size:21px;color:#9a9a9a">×</span></div>
-          <div class="statNavn">dyrere enn nødvendig${d.kuttede > 0 ? ", minst" : ""}</div>
+          <div class="statNavn">mer enn selve teksten${d.kuttede > 0 ? ", minst" : ""}</div>
         </div>
       </div>
     </div>
@@ -325,7 +327,7 @@ function tegn() {
             <span class="mono" style="font-size:18px;color:#4ade80">${komma(d.dekodingWh)} Wh</span>
           </div>
           <div style="height:26px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:${Math.max(1.2, (d.dekodingWh / Math.max(d.lesingWh, 0.001)) * 100)}%;min-width:5px;height:100%;background:#4ade80"></div></div>
-          <div style="font-size:14px;color:#6b6b6b">EcoLogits 0.11.1</div>
+          <div style="font-size:14px;color:#6b6b6b">selve svaret koster lite</div>
         </div>
       </div>` : `
       <div class="kol" style="gap:10px;flex-grow:1;justify-content:center">
