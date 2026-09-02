@@ -607,11 +607,14 @@ function s4() {
    * formuleringen, aldri et oppdiktet tall. */
   const r = S.resultat;
   const forhold = r ? Math.round(r.raa.input_tokens / r.rein.input_tokens) : null;
+  // Ble sida kuttet, er begge tallene et gulv. Forbeholdet sto bare på steg 2;
+  // uten det her leses et understatement som en eksakt måling.
+  const kuttet = !!(r && r.raa.truncated);
   const forklaring = r
-    ? `For å svare deg måtte assistenten lese <span class="mono" style="color:#fb923c">${tall(r.raa.input_tokens)}</span> tokens.
+    ? `For å svare deg måtte assistenten lese ${kuttet ? "minst " : ""}<span class="mono" style="color:#fb923c">${tall(r.raa.input_tokens)}</span> tokens${kuttet ? " — sida var for stor til å sendes hel" : ""}.
        Bare <span class="mono" style="color:#4ade80">${tall(r.rein.input_tokens)}</span> av dem var selve teksten på siden
        — resten var kode, menyer, sporingsskript og cookie-bannere.
-       <b>${forhold} ganger mer enn selve teksten</b>, og det skjer på nytt hver gang noen spør.`
+       <b>${kuttet ? "Minst " : ""}${forhold} ganger mer enn selve teksten</b>, og det skjer på nytt hver gang noen spør.`
     : `En AI som skal svare om en nettside må lese alt som ligger bak den
        — kode, menyer, sporingsskript og cookie-bannere — ikke bare teksten du ser.
        Det koster strøm på nytt hver gang noen spør.`;
@@ -661,7 +664,9 @@ function s5() {
       <div style="font-size:16px;color:#9a9a9a">strøm for ${maalt > 0 ? "spørsmålet ditt" : "ett spørsmål"}</div>
     </div>
     <div class="kol" style="gap:9px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
-      <div style="font-size:15px;color:#ededed;line-height:1.5">Det er like mye strøm som <b>${tvTekst}</b> med TV-en på. Eller <b>${batteri < 1 ? batteri.toFixed(1) : Math.round(batteri)} %</b> av mobilbatteriet ditt.</div>
+      <div style="font-size:15px;color:#ededed;line-height:1.5">Det er like mye strøm som <b>${tvTekst}</b> med TV-en på. Eller ${batteri >= 100
+        ? `<b>${komma(batteri / 100, 1)} fulle mobilladinger</b>.`
+        : `<b>${batteri < 1 ? batteri.toFixed(1) : Math.round(batteri)} %</b> av mobilbatteriet ditt.`}</div>
       <div class="fin">${maalt > 0
         ? "Regnet ut fra dine egne målte tall — både det å lese siden og det å svare. TV på 100 W, mobilbatteri på 11 Wh. Poenget er ikke at ett spørsmål er mye, men at det ikke er null, og at det meste gikk til å lese siden."
         : "TV på 100 W, mobilbatteri på 11 Wh, 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Poenget er ikke at ett spørsmål er mye — det er hvor lite en kropp orker å lage."}</div>
@@ -738,7 +743,7 @@ function s7() {
         <span class="mono" style="font-size:18px;color:#4ade80">${tall(r.rein.input_tokens)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:11px;border-top:1px solid #282828">
-        <span style="font-size:14.5px;color:#ededed">Forskjell</span>
+        <span style="font-size:14.5px;color:#ededed">Forskjell${r.raa.truncated ? ", minst" : ""}</span>
         <span class="mono disp" style="font-size:24px;color:#fb923c">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</span>
       </div>
     </div>` : ""}
