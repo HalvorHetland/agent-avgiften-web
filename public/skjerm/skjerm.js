@@ -4,7 +4,7 @@
  *
  *  1. `setInterval` med oppdiktede tall er byttet mot Supabase Realtime.
  *     Skjermen abonnerer på en kringkasting fra en trigger på ai_runs og
- *     crank_runs, og henter aggregatet på nytt når noe skjer. Vi kunne ikke
+ *     ai_runs, og henter aggregatet på nytt når noe skjer. Vi kunne ikke
  *     brukt postgres_changes: den speiler RLS, og anon har med vilje ingen
  *     SELECT på tabellene.
  *
@@ -29,14 +29,11 @@ const params = new URLSearchParams(location.search);
 const TELEFON_URL = params.get("telefon")
   || location.origin + location.pathname.replace(/skjerm\/.*$/, "");
 
-const JOULE_PER_SPM = 864;   // 0,24 Wh, etterprøvd mot arXiv:2508.15734
-const MAAL_JOULE = 8640;     // ti spørsmål
 
 // Korpusmedianene, til kaldstart. Merket som korpus, aldri som «i dag».
 const KORPUS = { raa: 103001, reint: 1175, forhold: 87.7 };
 
 let T = null;        // siste booth_totals
-let SVEIV = [];      // siste tolv sveiveøkter
 let SISTE = [];      // siste innleverte målinger
 let forrige = {};    // for å pulse tall som har endret seg
 
@@ -56,15 +53,17 @@ function nytt(nokkel, verdi) {
 
 async function hent() {
   try {
-    const [t, s, m] = await Promise.all([
-      db.from("booth_totals").select("*").single(),
-      db.from("siste_sveiv").select("*"),
-      db.from("siste_maalinger").select("*"),
+    /* Navngitte felter, ikke posisjonell destrukturering. En spørring som
+     * legges til eller fjernes midt i lista har før byttet om på resultatene
+     * og gitt svart skjerm. */
+    const svar = {};
+    await Promise.all([
+      db.from("booth_totals").select("*").single().then((r) => { svar.totaler = r; }),
+      db.from("siste_maalinger").select("*").then((r) => { svar.siste = r; }),
     ]);
-    if (t.error) throw t.error;
-    T = t.data;
-    SVEIV = s.data ?? [];
-    SISTE = m.data ?? [];
+    if (svar.totaler.error) throw svar.totaler.error;
+    T = svar.totaler.data;
+    SISTE = svar.siste.data ?? [];
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
     // Behold siste kjente tall og si fra. Bedre enn en tom skjerm, og langt
@@ -98,8 +97,6 @@ function tallene() {
   const forhold = reint > 0 ? raa / reint : 0;
 
   const kall = kaldstart ? 0 : Number(T.kall);
-  const joules = T ? Number(T.joules) : 0;
-  const wh = joules / 3600;
   // Bare våre egne kall. Den felles potten med Gjermund hører til lagtavla —
   // hadde den stått her, ville en nullstilling av vår side latt hans tall bli
   // stående på denne skjermen.
@@ -114,23 +111,13 @@ function tallene() {
   const lesingMaks = T ? Number(T.lesing_wh_max) : 0;
   const harMetode = dekodingWh > 0 || lesingWh > 0;
   const aiWh = harMetode ? dekodingWh + lesingWh : kall * 0.24;
-  const aiJoule = aiWh * 3600;
-  const dekning = aiJoule > 0 ? (joules / aiJoule) * 100 : 0;
-  const mangler = Math.max(0, MAAL_JOULE - (joules % MAAL_JOULE));
-  // Hvor mange spørsmål sveivemålet på 8 640 J faktisk dekker, med målt snitt.
-  const joulePerSpm = (T && Number(T.spoersmaal) > 0) ? aiJoule / Number(T.spoersmaal) : JOULE_PER_SPM;
-  const spmForMaal = MAAL_JOULE / joulePerSpm;
 
   return {
-    kaldstart, raa, reint, forhold, kall, joules, wh, dekning, mangler,
+    kaldstart, raa, reint, forhold, kall,
     spoersmaal: T ? Number(T.spoersmaal) : 0,
-    sveiveoekter: T ? Number(T.sveiveoekter) : 0,
     kuttede: T ? Number(T.kuttede_kall) : 0,
     raa_tegn: T ? Number(T.raa_tegn) : 0,
-    // Sveivehalvdelen bygges av medstudenten. Før den finnes skal skjermen si
-    // det, ikke vise 0 J og 0 % som om rommet hadde sveivet og fått ingenting.
-    ingenSveiv: !T || Number(T.sveiveoekter) === 0,
-    aiWh, dekodingWh, lesingWh, lesingMin, lesingMaks, harMetode, spmForMaal,
+    aiWh, dekodingWh, lesingWh, lesingMin, lesingMaks, harMetode,
     vannL: T && Number(T.vann_l) > 0 ? Number(T.vann_l) : kall * 0.00026,
     brukt: T ? Number(T.brukt_usd) : 0,
     budsjett: T ? Number(T.budsjett_usd) : 0,
@@ -222,23 +209,6 @@ function sisteMaalinger() {
 function tegn() {
   const d = tallene();
   const e = enheter(d);
-
-  const soyler = (() => {
-    const tom = `<div style="flex-grow:1;border-radius:3px;height:4%;background:#1a1a1a"></div>`;
-    if (!SVEIV.length) return tom.repeat(12);
-    const maks = Math.max(...SVEIV.map((s) => Number(s.joules)), 1);
-    const rekke = [...SVEIV].reverse();   // eldst til venstre, som en tidslinje
-    return tom.repeat(Math.max(0, 12 - rekke.length)) + rekke.map((s) => {
-      const h = Math.max(6, (Number(s.joules) / maks) * 100);
-      const c = h > 85 ? "#4ade80" : (h > 60 ? "#2b5233" : "#1e3a24");
-      return `<div style="flex-grow:1;border-radius:3px;height:${h}%;background:${c}"></div>`;
-    }).join("");
-  })();
-
-  const siste = SVEIV[0];
-  const sisteTekst = siste
-    ? `${sep(siste.joules)} J${siste.peak_watts ? " · " + komma(siste.peak_watts, 0) + " W topp" : ""}`
-    : "ingen enda";
 
   const reintBredde = d.raa > 0 ? Math.max(0.2, (d.reint / d.raa) * 100) : 0;
   const spart = d.raa - d.reint;
@@ -333,34 +303,42 @@ function tegn() {
       </div>
     </div>
 
-    <div class="kort kol" style="width:470px;flex-shrink:0;gap:16px;padding:28px 30px;border-color:#1e3a24">
-      <div class="lbl" style="color:#4ade80">${d.ingenSveiv ? "Sveiva" : "Dere har sveivet"}</div>
-      ${d.ingenSveiv ? `
-      <div class="kol" style="gap:10px;flex-grow:1;justify-content:center">
-        <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15;color:#6b6b6b">Ikke koblet til enda</div>
-        <div style="font-size:17px;color:#5a5a5a;line-height:1.5">Denne halvdelen bygges nå. Her kommer joulene rommet lager for hånd, i sanntid.</div>
-        <div class="fin" style="font-size:14px;color:#4a4a4a;margin-top:6px">Vi viser ikke et tall vi ikke har målt.</div>
-      </div>` : `
+    <div class="kort kol" style="width:470px;flex-shrink:0;gap:16px;padding:28px 30px;border-color:#3a2412">
+      <div class="lbl" style="color:#fb923c">Strøm brukt her</div>
       <div style="display:flex;align-items:baseline;gap:12px">
-        <div class="mono disp${nytt("joules", d.joules)}" style="font-size:64px;font-weight:500;line-height:0.9;color:#4ade80">${sep(d.joules)}</div>
-        <div style="font-size:20px;color:#9a9a9a">joule</div>
-      </div>`}
-      <div class="kol" style="gap:10px;display:${d.ingenSveiv ? "none" : "flex"}">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:17px;color:#9a9a9a">Siste økt</span>
-          <span class="mono" style="font-size:17px">${sisteTekst}</span>
-        </div>
-        <div style="display:flex;align-items:flex-end;gap:5px;height:104px">${soyler}</div>
-        <div style="font-size:15px;color:#6b6b6b">siste tolv økter</div>
+        <div class="mono disp${nytt("wh", Math.round(d.aiWh * 100))}" style="font-size:64px;font-weight:500;line-height:0.9;color:#fb923c">${komma(d.aiWh)}</div>
+        <div style="font-size:20px;color:#9a9a9a">Wh</div>
       </div>
-      <div style="display:${d.ingenSveiv ? "none" : "flex"};margin-top:auto;padding-top:18px;border-top:1px solid #282828">
+      ${d.harMetode ? `
+      <div class="kol" style="gap:11px">
+        <div class="kol" style="gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:17px;color:#ededed">Å lese sidene</span>
+            <span class="mono" style="font-size:18px;color:#fb923c">${komma(d.lesingWh)} Wh</span>
+          </div>
+          <div style="height:26px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
+          <div style="font-size:14px;color:#6b6b6b">bånd: ${komma(d.lesingMin)} til ${komma(d.lesingMaks)} Wh</div>
+        </div>
+        <div class="kol" style="gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:17px;color:#ededed">Å svare</span>
+            <span class="mono" style="font-size:18px;color:#4ade80">${komma(d.dekodingWh)} Wh</span>
+          </div>
+          <div style="height:26px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:${Math.max(1.2, (d.dekodingWh / Math.max(d.lesingWh, 0.001)) * 100)}%;min-width:5px;height:100%;background:#4ade80"></div></div>
+          <div style="font-size:14px;color:#6b6b6b">EcoLogits 0.11.1</div>
+        </div>
+      </div>` : `
+      <div class="kol" style="gap:10px;flex-grow:1;justify-content:center">
+        <div style="font-size:17px;color:#5a5a5a;line-height:1.5">Ingen målinger med metode enda.</div>
+      </div>`}
+      <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
-          <div class="mono disp statTall${nytt("oekter", d.sveiveoekter)}">${sep(d.sveiveoekter)}</div>
-          <div class="statNavn">som har sveivet</div>
+          <div class="mono disp statTall" style="color:#fb923c">${d.harMetode && d.dekodingWh > 0 ? Math.round(d.lesingWh / d.dekodingWh) : "—"}<span style="font-size:21px;color:#9a9a9a">×</span></div>
+          <div class="statNavn">lesing mot svar</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall">${komma(d.wh)}<span style="font-size:21px;color:#9a9a9a"> Wh</span></div>
-          <div class="statNavn">samlet</div>
+          <div class="mono disp statTall">${komma(d.vannL * 1000, 1)}<span style="font-size:21px;color:#9a9a9a"> mL</span></div>
+          <div class="statNavn">vann til kjøling</div>
         </div>
       </div>
     </div>
@@ -376,18 +354,12 @@ function tegn() {
 
   <div style="display:flex;align-items:center;gap:34px;padding:24px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
     <div class="kol" style="gap:5px;flex-shrink:0">
-      <div class="mono disp" style="font-size:50px;font-weight:500;line-height:1;color:${d.ingenSveiv ? "#5a5a5a" : "#fbbf24"}">${d.ingenSveiv ? "—" : (d.dekning > 0 && d.dekning < 1 ? komma(d.dekning) : Math.round(d.dekning)) + " %"}</div>
-      <div style="font-size:17px;color:#9a9a9a">av strømmen er sveivet inn</div>
+      <div class="mono disp" style="font-size:50px;font-weight:500;line-height:1;color:#fbbf24">${d.harMetode && d.spoersmaal > 0 ? komma(d.aiWh / d.spoersmaal) : "—"}</div>
+      <div style="font-size:17px;color:#9a9a9a">Wh per spørsmål</div>
     </div>
     <div style="width:1px;align-self:stretch;background:#282828"></div>
     <div class="kol" style="gap:6px;flex-grow:1">
-      <div style="font-size:20px;color:#ededed;line-height:1.45">${d.ingenSveiv
-        ? "Sveiva er ikke koblet til enda, så dekningen er ikke målt. Tokentallene til venstre er ekte."
-        : `Neste mål: <span class="mono" style="color:#4ade80">8 640 J</span> — ${
-            d.spmForMaal >= 1.5 ? `nok til de ${Math.floor(d.spmForMaal)} neste spørsmålene`
-            : d.spmForMaal >= 0.95 ? "nok til omtrent ett spørsmål"
-            : `dekker ikke engang ett spørsmål (${komma(d.spmForMaal * 100, 0)} % av ett)`
-          }. Dere mangler <span class="mono" style="color:#fbbf24">${sep(d.mangler)} J</span>.`}</div>
+      <div style="font-size:20px;color:#ededed;line-height:1.45">Sveiva står ved <span style="color:#4ade80">fellesskjermen</span>. Her måles bare forbruket; der borte lager rommet strøm mot begge stasjonene til sammen.</div>
       <div style="font-size:15px;color:#6b6b6b;line-height:1.5">${d.harMetode
         ? "Energi: EcoLogits 0.11.1 for svaret pluss et FLOP-basert leseestimat (Epoch AI-forankret, MFU 10–30 %). Lesingen dominerer — det er den de vanlige verktøyene ikke regner. Attention-leddet er utelatt, så tallet er et gulv."
         : "Omregning: 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Et gulv, ikke et estimat."}</div>

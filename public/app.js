@@ -592,31 +592,28 @@ function s5() {
   const wh = r ? (r.raa.energy_wh ?? 0) + (r.raa.lesing_wh ?? 0)
              + (r.rein.energy_wh ?? 0) + (r.rein.lesing_wh ?? 0) : 0;
   const joule = wh > 0 ? wh * 3600 : 864;
-  const sveivS = joule / 40;                       // sveiva yter ~40 W
-  const sveivTekst = sveivS >= 90 ? `${Math.round(sveivS / 60)} minutter` : `${Math.round(sveivS)} sekunder`;
   const tvS = joule / 100;
   const tvTekst = tvS >= 90 ? `${Math.round(tvS / 60)} minutter` : `${Math.round(tvS)} sekunder`;
   const batteri = (wh > 0 ? wh : 0.24) / 11 * 100;
   return `
   <div class="kol" style="gap:18px;height:100%">
     <div class="kol" style="gap:8px">
-      <div class="lbl" style="color:#4ade80">Steg 3 av 3</div>
-      <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Nå lager du strømmen selv</div>
+      <div class="lbl" style="color:#f97316">Steg 3 av 3</div>
+      <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Dette kostet spørsmålet ditt</div>
     </div>
-    <div class="kol" style="gap:6px;align-items:center;padding:22px;background:#111;border:1px solid #1e3a24;border-radius:14px">
-      <div class="mono disp" style="font-size:${joule >= 10000 ? 52 : 68}px;font-weight:500;line-height:1;color:#4ade80">${tall(Math.round(joule))}</div>
+    <div class="kol" style="gap:6px;align-items:center;padding:22px;background:#111;border:1px solid #3a2412;border-radius:14px">
+      <div class="mono disp" style="font-size:${joule >= 10000 ? 52 : 68}px;font-weight:500;line-height:1;color:#fb923c">${tall(Math.round(joule))}</div>
       <div style="font-size:16px;color:#9a9a9a">joule for ${wh > 0 ? "spørsmålet ditt" : "ett spørsmål"}</div>
-      <div style="font-size:15px;color:#6b6b6b;margin-top:4px">omtrent ${sveivTekst} på sveiva</div>
     </div>
     <div class="kol" style="gap:9px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Det er like mye strøm som <b>${tvTekst}</b> med TV-en på. Eller <b>${batteri < 1 ? batteri.toFixed(1) : Math.round(batteri)} %</b> av mobilbatteriet ditt.</div>
       <div class="fin">${wh > 0
-        ? "Modellert fra dine egne målte tokens: EcoLogits for svarene pluss et kildeforankret leseestimat. TV på 100 W, mobilbatteri på 11 Wh. Ingen forventer at du sveiver alt — poenget er å kjenne hvor mye det er."
+        ? "Modellert fra dine egne målte tokens: EcoLogits for svarene pluss et kildeforankret leseestimat. TV på 100 W, mobilbatteri på 11 Wh. Poenget er ikke at ett spørsmål er mye — det er at det ikke er null, og at det meste gikk til å lese siden."
         : "TV på 100 W, mobilbatteri på 11 Wh, 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Poenget er ikke at ett spørsmål er mye — det er hvor lite en kropp orker å lage."}</div>
     </div>
     ${rommetBoks()}
     <div class="btn" data-gaa="6" style="margin-top:auto">
-      <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Jeg har sveivet</span>
+      <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Videre</span>
     </div>
   </div>`;
 }
@@ -638,42 +635,23 @@ function s6() {
   </div>`;
 }
 
-/* «Rommet mot AI-en»: hvor stor andel av dagens AI-energi rommet har sveivet
- * inn. AI-siden regnes om med den etterprøvde konstanten — 0,24 Wh = 864 J per
- * forespørsel (arXiv:2508.15734). Se docs/omregningskonstanten.md. */
+/* Sveiva står ved fellesskjermen, ikke her. Telefonen viser hva spørsmålet
+ * kostet; produksjonen skjer et annet sted i rommet. Denne boksen er broen
+ * mellom de to — den lover ikke et tall, den peker på et sted. */
 function rommetBoks() {
-  const t = S.totaler;
-  if (!t) return "";
-  // Samme regel som storskjermen: en sveiv som ikke er koblet til har ikke
-  // «sveivet inn 0 %» — den finnes ikke enda.
-  if (Number(t.sveiveoekter) === 0) {
-    return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
-      <div class="disp" style="font-size:18px;font-weight:700">Rommet mot AI-en</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva kobles til på standdagen. Alt som sveives går i samme pott, mot alt AI-en har brukt.</div>
-    </div>`;
-  }
-  const aiWh = Number(t.dekoding_wh ?? 0) + Number(t.lesing_wh ?? 0);
-  const aiJoule = aiWh > 0 ? aiWh * 3600 : Number(t.kall) * 864;
-  const sveivJoule = Number(t.joules);
-  if (aiJoule <= 0) {
-    return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
-      <div class="disp" style="font-size:18px;font-weight:700">Rommet mot AI-en</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Du er den første i dag. Alt du sveiver går i samme pott.</div>
-    </div>`;
-  }
-  const dekning = (sveivJoule / aiJoule) * 100;
-  return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
-    <div class="disp" style="font-size:18px;font-weight:700">Rommet mot AI-en</div>
-    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Alt dere sveiver går i samme pott. Akkurat nå dekker den <span class="mono" style="color:#fbbf24">${dekning < 1 && dekning > 0 ? dekning.toFixed(1) : Math.round(dekning)} %</span> av det standen har brukt i dag.</div>
+  return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
+    <div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Vil du lage strømmen selv?</div>
+    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva står ved den store fellesskjermen. Alt rommet sveiver går i samme pott, mot alt de to stasjonene har brukt til sammen.</div>
   </div>`;
 }
 
-/* «Du er nummer X i dag». spoersmaal teller unike session_id i ai_runs. */
+/* «Du er nummer X i dag». spoersmaal teller unike session_id i ai_runs.
+ * Sveivetallet står bevisst ikke her — det hører til fellesskjermen. */
 function nummerBoks() {
   const t = S.totaler;
   if (!t) return "";
   return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
-    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Du er nummer <span class="mono" style="color:#4ade80">${tall(t.spoersmaal)}</span> i dag.${Number(t.joules) > 0 ? ` Til sammen har dere sveivet inn <span class="mono" style="color:#4ade80">${tall(t.joules)} J</span>.` : ""}</div>
+    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Du er nummer <span class="mono" style="color:#4ade80">${tall(t.spoersmaal)}</span> i dag.</div>
   </div>`;
 }
 
