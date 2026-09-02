@@ -132,8 +132,13 @@ function arealdiagram(bredde, hoyde) {
   const skille = serie.map((s) => `${x(s.t)},${y(Math.min(s.sveivet, s.brukt))}`).join(" ");
   const bunn = `${x(t1)},${y(0)} ${x(t0)},${y(0)}`;
 
-  const linjer = [0, 0.25, 0.5, 0.75, 1].map((f) => {
-    const wh = maks * f;
+  // Runde trinn (1, 2, 5, 10 ...) i stedet for fjerdedeler av maks: 36/73/109
+  // er ikke tall noen leser, 25/50/75/100 er det.
+  const trinn = (() => { const r = maks / 4, p = 10 ** Math.floor(Math.log10(r)), q = r / p;
+    return (q <= 1 ? 1 : q <= 2 ? 2 : q <= 5 ? 5 : 10) * p; })();
+  const nivaaer = []; for (let v = 0; v <= maks + 1e-9; v += trinn) nivaaer.push(v);
+  const linjer = nivaaer.map((wh, i) => {
+    const f = i === nivaaer.length - 1 ? 1 : 0;
     return `<line x1="${P.v}" y1="${y(wh)}" x2="${bredde - P.h}" y2="${y(wh)}" stroke="#1c1c1c" stroke-width="1"/>
       <text x="${P.v - 9}" y="${y(wh) + 5}" text-anchor="end" fill="#767676" font-size="13"
         font-family="IBM Plex Mono, monospace">${komma(wh, wh < 10 ? 1 : 0)}${f === 1 ? " Wh" : ""}</text>`;
