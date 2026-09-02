@@ -298,10 +298,10 @@ function tegn() {
       </div>
 
       <div style="font-size:14px;color:#5a5a5a;line-height:1.45;margin-top:2px">
-        Tokens er målt. Energi er modellert — ingen leverandør oppgir joule per
-        forespørsel. Halvor: EcoLogits for svaret pluss et FLOP-basert
-        leseestimat${vaarLesing > 0 ? ` (lesingen er ${komma((vaarLesing / Math.max(vaarWh, 0.001)) * 100, 0)} % av hans andel)` : ""}.
-        Gjermund: EcoLogits på gpt-5. Sveiva er derimot ekte målt — volt ganger ampere ganger tid.
+        Tokentallene er målt. Strømmen er regnet ut — ingen leverandør oppgir hvor
+        mye ett spørsmål bruker. Begge stasjonene regner både det å lese og det å
+        svare${vaarLesing > 0 ? `; hos Halvor går ${komma((vaarLesing / Math.max(vaarWh, 0.001)) * 100, 0)} % av strømmen til lesingen alene` : ""}.
+        Sveiva er derimot ekte målt: volt ganger ampere ganger tid.
       </div>
 
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
