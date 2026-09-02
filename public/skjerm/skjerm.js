@@ -237,7 +237,7 @@ function tegn() {
     <div class="kort kol" style="flex-grow:1;gap:18px;padding:32px;border-color:#3a2412;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="lbl" style="color:#f97316">AI-en har brukt${d.kaldstart ? " · korpus, ikke i dag" : ""}</div>
-        ${d.kuttede > 0 ? `<div class="mono" style="font-size:14px;color:#fbbf24">${d.kuttede} av ${d.kall} kall kuttet — gulv</div>` : ""}
+        ${d.kuttede > 0 ? `<div class="mono" style="font-size:14px;color:#fbbf24">${d.kuttede} av ${d.kall} sider var for store, tallene er minst</div>` : ""}
       </div>
 
       <div style="display:flex;align-items:flex-end;gap:34px">
