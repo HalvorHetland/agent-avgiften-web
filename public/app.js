@@ -270,6 +270,9 @@ async function spør() {
 // U+202F: smalt hardt mellomrom. Designet vil ha mellomrom som tusenskille,
 // og et hardt et hindrer at «191 972» brekker midt i tallet.
 const tall = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+/* Desimaltall med norsk komma. Fantes bare på de to storskjermene; telefonen
+ * trengte den da energien gikk fra joule (heltall) til wattimer. */
+const komma = (n, d = 2) => Number(n).toLocaleString("nb-NO", { minimumFractionDigits: d, maximumFractionDigits: d });
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const app = () => document.getElementById("app");
 
@@ -607,15 +610,19 @@ function s4() {
 function s5() {
   /* Energien for AKKURAT denne økta: EcoLogits for svarene pluss det
    * FLOP-baserte leseestimatet, fra de samme feltene som lagres i basen.
-   * Konstanten 864 J er bare reserve for økter uten energifelt — å vise den
-   * som «ett spørsmål» ville motsagt storskjermen, som regner med lesingen. */
+   * Reserven 0,24 Wh gjelder bare økter uten energifelt — å vise den som
+   * «ett spørsmål» ville motsagt storskjermen, som regner med lesingen.
+   *
+   * Alt oppgis i wattimer. Joule ble brukt her fordi sveiva målte joule, men
+   * sveiva står nå ved fellesskjermen, og resten av standen regner i Wh. To
+   * enheter for samme størrelse er én enhet for mye. */
   const r = S.resultat;
-  const wh = r ? (r.raa.energy_wh ?? 0) + (r.raa.lesing_wh ?? 0)
+  const maalt = r ? (r.raa.energy_wh ?? 0) + (r.raa.lesing_wh ?? 0)
              + (r.rein.energy_wh ?? 0) + (r.rein.lesing_wh ?? 0) : 0;
-  const joule = wh > 0 ? wh * 3600 : 864;
-  const tvS = joule / 100;
+  const wh = maalt > 0 ? maalt : 0.24;
+  const tvS = (wh * 3600) / 100;
   const tvTekst = tvS >= 90 ? `${Math.round(tvS / 60)} minutter` : `${Math.round(tvS)} sekunder`;
-  const batteri = (wh > 0 ? wh : 0.24) / 11 * 100;
+  const batteri = wh / 11 * 100;
   return `
   <div class="kol" style="gap:18px;height:100%">
     <div class="kol" style="gap:8px">
@@ -623,12 +630,15 @@ function s5() {
       <div class="disp" style="font-size:30px;font-weight:700;line-height:1.12">Dette kostet spørsmålet ditt</div>
     </div>
     <div class="kol" style="gap:6px;align-items:center;padding:22px;background:#111;border:1px solid #3a2412;border-radius:14px">
-      <div class="mono disp" style="font-size:${joule >= 10000 ? 52 : 68}px;font-weight:500;line-height:1;color:#fb923c">${tall(Math.round(joule))}</div>
-      <div style="font-size:16px;color:#9a9a9a">joule for ${wh > 0 ? "spørsmålet ditt" : "ett spørsmål"}</div>
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <div class="mono disp" style="font-size:${wh >= 100 ? 54 : 68}px;font-weight:500;line-height:1;color:#fb923c">${komma(wh)}</div>
+        <div class="mono disp" style="font-size:26px;font-weight:500;color:#9a9a9a">Wh</div>
+      </div>
+      <div style="font-size:16px;color:#9a9a9a">strøm for ${maalt > 0 ? "spørsmålet ditt" : "ett spørsmål"}</div>
     </div>
     <div class="kol" style="gap:9px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Det er like mye strøm som <b>${tvTekst}</b> med TV-en på. Eller <b>${batteri < 1 ? batteri.toFixed(1) : Math.round(batteri)} %</b> av mobilbatteriet ditt.</div>
-      <div class="fin">${wh > 0
+      <div class="fin">${maalt > 0
         ? "Modellert fra dine egne målte tokens: EcoLogits for svarene pluss et kildeforankret leseestimat. TV på 100 W, mobilbatteri på 11 Wh. Poenget er ikke at ett spørsmål er mye — det er at det ikke er null, og at det meste gikk til å lese siden."
         : "TV på 100 W, mobilbatteri på 11 Wh, 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Poenget er ikke at ett spørsmål er mye — det er hvor lite en kropp orker å lage."}</div>
     </div>
