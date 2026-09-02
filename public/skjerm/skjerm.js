@@ -293,8 +293,8 @@ function tegn() {
     <div class="kort kol" style="width:470px;flex-shrink:0;gap:14px;padding:28px 30px">
       <div class="lbl">Siste innleverte</div>
       <div style="display:flex;gap:14px;font-size:13px;color:#5a5a5a;padding-bottom:2px">
-        <span style="width:150px">side</span><span style="width:88px;text-align:right">kodet</span>
-        <span style="width:12px"></span><span style="width:62px;text-align:right">tekst</span>
+        <span style="width:150px">side</span><span style="width:88px;text-align:right">AI-en leste</span>
+        <span style="width:12px"></span><span style="width:62px;text-align:right">du leser</span>
         <span style="margin-left:auto">forskjell</span>
       </div>
       <div class="kol" style="min-height:0;overflow:hidden">${sisteMaalinger()}</div>

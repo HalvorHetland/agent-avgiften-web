@@ -443,7 +443,7 @@ function s1() {
       <div class="btn${akt ? "" : " btn-av"}" data-handling="${akt ? "spor" : "ingenting"}">
         <span class="disp" style="font-size:18px;font-weight:700;color:${akt ? "#fff" : "#5a5a5a"}">Send til assistenten</span>
       </div>
-      <div class="fin">Assistenten svarer to ganger: én gang etter å ha lest hele siden med kode og menyer, én gang etter bare teksten. Du får se forskjellen.</div>
+      <div class="fin">Assistenten svarer to ganger: én gang etter å ha lest hele siden med menyer, reklame og alt det usynlige, én gang etter bare teksten. Du får se forskjellen.</div>
     </div>
     ${køLinje()}
   </div>`;
@@ -496,7 +496,7 @@ function laster() {
     <div class="kol" style="gap:5px;padding:6px 16px 10px;background:#111;border:1px solid #282828;border-radius:12px">
       ${steg(0, `Åpner ${esc(S.side.navn)}`, m ? `${(m.hentet_ms / 1000).toFixed(1)} s` : "", "henter sida slik en agent får den")}
       ${steg(1, "Leser hele siden", m ? `${tall(m.raa_tegn)} tegn` : "", "kode, menyer, cookie-banner, reklame — alt")}
-      ${steg(1, "Finner hovedinnholdet", m ? `${tall(m.reint_tegn)} tegn` : "", "det du faktisk leser med øynene")}
+      ${steg(1, "Plukker ut selve teksten", m ? `${tall(m.reint_tegn)} tegn` : "", "det du faktisk leser med øynene")}
       ${steg(2, "Spør modellen med begge versjonene", "", "samme spørsmål, to ulike sider")}
     </div>
 
