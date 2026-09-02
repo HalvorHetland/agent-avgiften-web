@@ -180,7 +180,7 @@ function enheter(d) {
   return [
     { tall: sep(sider),        navn: "A4-sider åpnet",          fin: "hele sidene, 3 000 tegn per side" },
     { tall: lesetid,           navn: "å lese dem for et menneske", fin: "~200 ord i minuttet" },
-    { tall: vann,              navn: "vann til kjøling",        fin: d.harMetode ? "EcoLogits, kun generering" : "0,26 mL per forespørsel" },
+    { tall: vann,              navn: "vann til kjøling",        fin: d.harMetode ? "regnet for svaret, ikke for lesingen" : "0,26 mL per forespørsel" },
     { tall: komma(wh) + " Wh", navn: "strøm, lesing + svar",    fin: d.harMetode ? `derav lesing ${komma(d.lesingWh)} [${komma(d.lesingMin)}–${komma(d.lesingMaks)}]` : "0,24 Wh per forespørsel" },
   ];
 }

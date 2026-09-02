@@ -611,7 +611,7 @@ function s4() {
     ? `For å svare deg måtte assistenten lese <span class="mono" style="color:#fb923c">${tall(r.raa.input_tokens)}</span> tokens.
        Bare <span class="mono" style="color:#4ade80">${tall(r.rein.input_tokens)}</span> av dem var selve teksten på siden
        — resten var kode, menyer, sporingsskript og cookie-bannere.
-       <b>${forhold} ganger mer enn nødvendig</b>, og det skjer på nytt hver gang noen spør.`
+       <b>${forhold} ganger mer enn selve teksten</b>, og det skjer på nytt hver gang noen spør.`
     : `En AI som skal svare om en nettside må lese alt som ligger bak den
        — kode, menyer, sporingsskript og cookie-bannere — ikke bare teksten du ser.
        Det koster strøm på nytt hver gang noen spør.`;
@@ -663,7 +663,7 @@ function s5() {
     <div class="kol" style="gap:9px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Det er like mye strøm som <b>${tvTekst}</b> med TV-en på. Eller <b>${batteri < 1 ? batteri.toFixed(1) : Math.round(batteri)} %</b> av mobilbatteriet ditt.</div>
       <div class="fin">${maalt > 0
-        ? "Modellert fra dine egne målte tokens: EcoLogits for svarene pluss et kildeforankret leseestimat. TV på 100 W, mobilbatteri på 11 Wh. Poenget er ikke at ett spørsmål er mye — det er at det ikke er null, og at det meste gikk til å lese siden."
+        ? "Regnet ut fra dine egne målte tall — både det å lese siden og det å svare. TV på 100 W, mobilbatteri på 11 Wh. Poenget er ikke at ett spørsmål er mye, men at det ikke er null, og at det meste gikk til å lese siden."
         : "TV på 100 W, mobilbatteri på 11 Wh, 0,24 Wh per forespørsel (Google, 2025 — median tekstforespørsel). Poenget er ikke at ett spørsmål er mye — det er hvor lite en kropp orker å lage."}</div>
     </div>
     ${rommetBoks()}
@@ -817,7 +817,7 @@ function blokkert() {
         <span style="font-size:15px;color:#ededed">Assistenten spurte</span>
         <span class="mono" style="font-size:16px;color:#fbbf24">Avvist</span>
       </div>
-      <div style="font-size:14px;color:#9a9a9a;line-height:1.45">Serveren svarte ${S.feil.http_status ?? 403} før noe innhold ble sendt. Agenten fikk aldri se siden.${S.side.avviser ? " Denne siden avviser alle automatiske forespørsler, ikke bare denne — det er ikke tilfeldig." : ""}</div>
+      <div style="font-size:14px;color:#9a9a9a;line-height:1.45">Serveren svarte ${S.feil.http_status ?? 403} før noe innhold ble sendt. Assistenten fikk aldri se siden.${S.side.avviser ? " Denne siden avviser alle automatiske forespørsler, ikke bare denne — det er ikke tilfeldig." : ""}</div>
     </div>
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15.5px;color:#ededed;font-weight:600;line-height:1.4">Dette er ikke en feil i målingen</div>
