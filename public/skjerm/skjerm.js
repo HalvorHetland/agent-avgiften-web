@@ -253,7 +253,7 @@ function tegn() {
             <div class="mono disp${nytt("reint", d.reint)}" style="font-size:52px;font-weight:500;line-height:0.9;color:#4ade80">${sep(d.reint)}</div>
             <div style="font-size:18px;color:#9a9a9a">tokens</div>
           </div>
-          <div style="font-size:15px;color:#4ade80">med min løsning</div>
+          <div style="font-size:15px;color:#4ade80">om sidene var ren tekst</div>
         </div>
       </div>
 
@@ -267,7 +267,7 @@ function tegn() {
         </div>
         <div class="kol" style="gap:7px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:19px;color:#ededed">Det et menneske ville lest</span>
+            <span style="font-size:19px;color:#ededed">Selve teksten på siden</span>
             <span class="mono" style="font-size:19px;color:#4ade80">${sep(d.reint)}</span>
           </div>
           <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${reintBredde}%;min-width:6px;height:100%;background:#4ade80"></div></div>

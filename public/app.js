@@ -571,15 +571,15 @@ function s3() {
     </div>
     <div class="kol" style="gap:6px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
-        <span style="font-size:15px;color:#ededed">Det du ville lest selv</span>
+        <span style="font-size:15px;color:#ededed">Selve teksten på siden</span>
         <span class="mono disp" style="font-size:22px;font-weight:500;color:#4ade80">${tall(rein.input_tokens)} <span style="font-size:14px;color:#9a9a9a">tokens</span></span>
       </div>
       <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${bredde}%;min-width:7px;height:100%;background:#4ade80"></div></div>
-      <div class="fin">bare teksten du ser med øynene</div>
+      <div class="fin">artikkelteksten alene, uten menyer, reklame og kode</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;padding:17px;background:#111;border:1px solid #282828;border-radius:12px">
       <div class="mono disp" style="font-size:38px;font-weight:500;line-height:1;color:#fb923c;flex-shrink:0">${forhold < 10 ? forhold.toFixed(1) : Math.round(forhold)}×</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye mer tekst måtte AI-en lese enn du ville gjort selv<br><span style="color:#6b6b6b">tokens = tekstbitene den betaler for</span></div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.45">så mye mer måtte AI-en lese enn selve teksten på siden<br><span style="color:#6b6b6b">tokens = tekstbitene den betaler for</span></div>
     </div>
     <div class="kol" style="gap:7px;padding:16px 17px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:15px;color:#ededed;line-height:1.5">Som å kjøre <b>${tall(meter)} meter</b> i elbil for å hente noe som ligger <b>én meter</b> unna.</div>
@@ -609,7 +609,7 @@ function s4() {
   const forhold = r ? Math.round(r.raa.input_tokens / r.rein.input_tokens) : null;
   const forklaring = r
     ? `For å svare deg måtte assistenten lese <span class="mono" style="color:#fb923c">${tall(r.raa.input_tokens)}</span> tokens.
-       Bare <span class="mono" style="color:#4ade80">${tall(r.rein.input_tokens)}</span> av dem var teksten et menneske ville lest
+       Bare <span class="mono" style="color:#4ade80">${tall(r.rein.input_tokens)}</span> av dem var selve teksten på siden
        — resten var kode, menyer, sporingsskript og cookie-bannere.
        <b>${forhold} ganger mer enn nødvendig</b>, og det skjer på nytt hver gang noen spør.`
     : `En AI som skal svare om en nettside må lese alt som ligger bak den
@@ -734,7 +734,7 @@ function s7() {
         <span class="mono" style="font-size:18px;color:#f97316">${tall(r.raa.input_tokens)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:14.5px;color:#9a9a9a">Det du ville lest selv</span>
+        <span style="font-size:14.5px;color:#9a9a9a">Selve teksten på siden</span>
         <span class="mono" style="font-size:18px;color:#4ade80">${tall(r.rein.input_tokens)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:11px;border-top:1px solid #282828">
