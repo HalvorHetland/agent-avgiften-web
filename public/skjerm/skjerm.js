@@ -294,7 +294,7 @@ function tegn() {
       <div class="lbl">Siste innleverte</div>
       <div style="display:flex;gap:14px;font-size:13px;color:#5a5a5a;padding-bottom:2px">
         <span style="width:150px">side</span><span style="width:88px;text-align:right">AI-en leste</span>
-        <span style="width:12px"></span><span style="width:62px;text-align:right">du leser</span>
+        <span style="width:12px"></span><span style="width:62px;text-align:right">teksten</span>
         <span style="margin-left:auto">forskjell</span>
       </div>
       <div class="kol" style="min-height:0;overflow:hidden">${sisteMaalinger()}</div>
