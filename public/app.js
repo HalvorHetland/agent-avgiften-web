@@ -89,6 +89,7 @@ function nyOkt() {
     laster: false,
     resultat: null,   // { raa, rein }
     visSvar: false,
+    klar: false,      // maalingen ferdig, venter paa at brukeren trykker Neste
     feil: null,       // { grunn, http_status, detalj }
     fritekst: "",
     totaler: null,
@@ -236,8 +237,12 @@ async function spør() {
     };
     // Ett kort opphold så tallene rekker å bli lest før neste steg starter.
     // Det er presentasjon av en måling som allerede er gjort, ikke falsk tid.
+    /* Hvert steg må rekke å bli lest. En bruker meldte at skjermen gikk for
+     * fort — og det er nettopp her hun ser at agenten leser hele siden for å
+     * finne litt tekst. Pausene presenterer en måling som alt er gjort; de
+     * later ikke som noe arbeid pågår. */
     S.fase = "lest"; tegn();
-    await new Promise((r) => setTimeout(r, 900));
+    await new Promise((r) => setTimeout(r, 2200));
 
     // ── 2. begge armene til modellen ──────────────────────────────────────
     S.fase = "sender"; tegn();
@@ -256,7 +261,11 @@ async function spør() {
       };
     } else {
       S.resultat = { raa, rein };
-      S.steg = 3;
+      /* Ikke hopp videre av seg selv. Den besøkende bestemmer når hun har
+       * sett nok — ellers forsvinner tallene før de er lest. */
+      S.fase = "klar"; S.klar = true;
+      tegn();
+      return;
     }
   } catch (err) {
     S.feil = { grunn: navigator.onLine ? "nett" : "frakoblet", detalj: String(err?.message ?? err) };
@@ -335,6 +344,7 @@ const HANDLINGER = {
     tegn();
   },
   ingenting() {},
+  tilResultat() { S.laster = false; S.fase = null; S.klar = false; S.steg = 3; tegn(); },
   visSvar() { S.visSvar = !S.visSvar; tegn(); },
   spor() { if (S.oppgave.trim()) { S.steg = 2; tegn(); spør(); } },
   prøvIgjen() { spør(); },
@@ -467,7 +477,7 @@ function avatar() {
  * teksten» med egne øyne før modellen har svart. */
 function laster() {
   const f = S.fase, m = S.malt;
-  const ferdig = { henter: 0, lest: 1, sender: 2 }[f] ?? 0;
+  const ferdig = { henter: 0, lest: 1, sender: 2, klar: 3 }[f] ?? 0;
 
   const steg = (nr, tittel, verdi, undertekst) => {
     const status = nr < ferdig || (nr === ferdig && nr < 2 && m) ? "ok"
@@ -490,7 +500,7 @@ function laster() {
   <div class="kol" style="gap:16px;height:100%">
     <div class="rad">
       ${avatar()}
-      <div class="boble boble-ai">Jobber med det. Du kan se hva jeg gjør.</div>
+      <div class="boble boble-ai">${S.klar ? "Ferdig. Se hva det kostet." : "Jobber med det. Du kan se hva jeg gjør."}</div>
     </div>
 
     <div class="kol" style="gap:5px;padding:6px 16px 10px;background:#111;border:1px solid #282828;border-radius:12px">
@@ -510,11 +520,19 @@ function laster() {
       for å finne <span class="mono" style="color:#4ade80">${tall(m.reint_tegn)}</span>.
     </div>` : ""}
 
+    ${S.klar ? `
+    <div class="kol" style="gap:11px;margin-top:auto;flex-shrink:0">
+      <div class="btn inn" data-handling="tilResultat">
+        <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Neste</span>
+      </div>
+    </div>` : `
     <div style="margin-top:auto;height:5px;background:#1c1c1c;border-radius:999px;overflow:hidden">
       <div class="skyv" style="height:100%;background:#f97316;border-radius:999px"></div>
-    </div>
+    </div>`}
     <div style="text-align:center;font-size:13.5px;color:#6b6b6b">${
-      f === "sender" ? "Den store versjonen tar lengst tid." : "Ingen tall er gjettet. Alt du ser er målt."
+      S.klar ? "Ingen tall er gjettet. Alt du ser er målt."
+      : f === "sender" ? "Den store versjonen tar lengst tid."
+      : "Ingen tall er gjettet. Alt du ser er målt."
     }</div>
   </div>`;
 }
