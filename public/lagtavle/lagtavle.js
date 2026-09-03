@@ -226,12 +226,12 @@ function tegn() {
     <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Klarer dere å sveive inn like mye som vi bruker?</div>
   </div>
 
-  <div class="kol" style="gap:12px;padding:22px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv || maalWh === 0 ? "none" : "flex"}">
+  <div class="kol" style="gap:8px;padding:14px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv || maalWh === 0 ? "none" : "flex"}">
     <div style="display:flex;justify-content:space-between;align-items:baseline">
       <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ett spørsmål${spmSveivet > 0 ? ` <span style="color:#4ade80">(${spmSveivet} sveivet inn så langt)</span>` : ""}</span>
       <span class="mono disp${nytt("iRunden", Math.round(iRunden * 100))}" style="font-size:30px;font-weight:500;color:#4ade80">${komma(iRunden, 2)} <span style="font-size:20px;color:#8a8a8a">/ ${komma(maalWh, 1)} Wh</span></span>
     </div>
-    <div style="height:44px;background:#1c1c1c;border-radius:10px;overflow:hidden">
+    <div style="height:30px;background:#1c1c1c;border-radius:10px;overflow:hidden">
       <div style="width:${andel}%;height:100%;background:#4ade80;border-radius:10px" class="fyll"></div>
     </div>
     <div style="display:flex;justify-content:space-between">
