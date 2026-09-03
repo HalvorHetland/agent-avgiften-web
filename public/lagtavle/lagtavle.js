@@ -116,6 +116,15 @@ function arealdiagram(bredde, hoyde) {
     const t = new Date(r.t).getTime();
     return { t, brukt: Number(r.total_energy_wh), sveivet: sveivetVed(t) };
   });
+  /* Serien er pottens logg, og potten endrer seg bare naar en AI-oekt lander.
+   * Sveiver noen etter siste AI-oekt, finnes det ingen punkt aa henge det
+   * groenne paa — baandet uteble selv med rader i crank_runs. Et sluttpunkt
+   * «naa» drar kurven fram til klokka og tar med all sveiving hittil. */
+  const naa = Date.now();
+  if (serie.length && serie[serie.length - 1].t < naa - 1000) {
+    const sist = serie[serie.length - 1];
+    serie.push({ t: naa, brukt: sist.brukt, sveivet: sveivetVed(naa) });
+  }
   const harSveiv = serie.some((p) => p.sveivet > 0);
 
   const maks = Math.max(...serie.map((s) => s.brukt), 0.001);
