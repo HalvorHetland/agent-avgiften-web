@@ -277,10 +277,10 @@ function tegn() {
       </div>
     </div>
 
-    <div class="kort kol" style="width:540px;flex-shrink:0;gap:16px;padding:26px 30px;border-color:#3a2412">
+    <div class="kort kol" style="width:540px;flex-shrink:0;gap:12px;padding:20px 30px;border-color:#3a2412;min-height:0">
       <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt og laget — hele rommet</div>
       <div style="display:flex;align-items:baseline;gap:12px">
-        <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:58px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
+        <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:52px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
         <div style="font-size:20px;color:#9a9a9a">Wh</div>
       </div>
 
@@ -288,13 +288,13 @@ function tegn() {
            er diagrammets «ikke dekket» — to helt ulike ting i samme farge rett
            ved siden av hverandre. Indigo og lilla holder dem adskilt fra
            diagrammets oransje og grønne. -->
-      <div class="kol" style="gap:14px;margin-top:2px">
+      <div class="kol" style="gap:10px;margin-top:0">
         <div class="kol" style="gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
             <span style="font-size:20px;color:#ededed">Halvor <span style="font-size:15px;color:#8a8a8a">— nettsidelesing</span></span>
             <span class="mono" style="font-size:20px;color:#818cf8">${komma(vaarWh, 2)} Wh</span>
           </div>
-          <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
+          <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
             <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#4f46e5"></div>
           </div>
         </div>
@@ -303,7 +303,7 @@ function tegn() {
             <span style="font-size:20px;color:#ededed">Gjermund <span style="font-size:15px;color:#8a8a8a">— chatbot</span></span>
             <span class="mono" style="font-size:20px;color:#a78bfa">${komma(hansWh, 2)} Wh</span>
           </div>
-          <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
+          <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
             <div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div>
           </div>
         </div>
@@ -316,7 +316,7 @@ function tegn() {
             <span style="font-size:20px;color:#ededed">Sveiva <span style="font-size:15px;color:#4ade80">— laget av rommet</span></span>
             <span class="mono" style="font-size:20px;color:#4ade80">${ingenSveiv ? "ikke koblet til" : komma(wh, 2) + " Wh"}</span>
           </div>
-          <div style="height:30px;background:#1c1c1c;border-radius:6px;overflow:hidden">
+          <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
             <div style="width:${ingenSveiv ? 0 : Math.max(0.4, (wh / maksWh) * 100)}%;height:100%;background:#4ade80"></div>
           </div>
         </div>
