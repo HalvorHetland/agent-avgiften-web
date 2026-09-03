@@ -11,8 +11,6 @@ const db = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
   auth: { persistSession: false },
 });
 
-const JOULE_PER_SPM = 864;    // 0,24 Wh, etterprøvd mot arXiv:2508.15734
-const MAAL_JOULE = 8640;      // ti spørsmål
 /* Referanseverdiene leses fra basen, ikke hardkodes.
  *
  * 12 Wh sto i designfila og var aldri etterprøvd — det er kapasiteten til en
@@ -94,7 +92,7 @@ function arealdiagram(bredde, hoyde) {
   // Den oransje kurven er den FELLES potten, logget ved hver endring — både
   // våre kall og Gjermunds chatbot-økter. Den grønne er sveivet energi,
   // akkumulert fra crank_runs. Begge i Wh, som er poenget: nå deler vi enhet.
-  if (FORLOEP.length < 2) {
+  if (FORLOEP.length < 1 && !FELLES) {
     return `<div style="height:${hoyde}px;display:flex;align-items:center;justify-content:center;color:#767676;font-size:18px">
       Diagrammet tegner seg når standen har vært i gang en stund.</div>`;
   }
@@ -120,6 +118,12 @@ function arealdiagram(bredde, hoyde) {
    * Sveiver noen etter siste AI-oekt, finnes det ingen punkt aa henge det
    * groenne paa — baandet uteble selv med rader i crank_runs. Et sluttpunkt
    * «naa» drar kurven fram til klokka og tar med all sveiving hittil. */
+  if (serie.length === 0 && FELLES) {
+    // Ingen pott-endring de siste 12 timene, men potten finnes: start kurven
+    // en time tilbake paa dagens verdi, saa sveivingen har noe aa staa paa.
+    const t0 = Date.now() - 3600e3;
+    serie.push({ t: t0, brukt: Number(FELLES.total_energy_wh), sveivet: sveivetVed(t0) });
+  }
   const naa = Date.now();
   if (serie.length && serie[serie.length - 1].t < naa - 1000) {
     const sist = serie[serie.length - 1];
@@ -197,16 +201,23 @@ function tegn() {
   const hansWh = Math.max(0, aiWh - vaarWh);
   const maksWh = Math.max(vaarWh, hansWh, wh, 0.001);
   const dekning = aiWh > 0 ? (wh / aiWh) * 100 : 0;
-  // Sveivehalvdelen bygges av Gjermund. Før den skriver til crank_runs skal
-  // skjermen si at tallet mangler, ikke vise 0 % som om rommet hadde sveivet.
+  // Foer sveiva skriver til crank_runs skal skjermen si at tallet mangler,
+  // ikke vise 0 % som om rommet hadde sveivet. Bygges: se stand/sveiv/.
   const ingenSveiv = !T || Number(T.sveiveoekter) === 0;
 
   // Målet fylles opp på nytt for hver runde på ti spørsmål.
-  const iRunden = joules % MAAL_JOULE;
-  const mangler = Math.max(0, MAAL_JOULE - iRunden);
-  const andel = Math.min(100, (iRunden / MAAL_JOULE) * 100);
-  // ~40 W er det en person klarer å holde på en håndsveiv over tid.
-  const sek = Math.round(mangler / 40);
+  /* Maalet er ett spoersmaal, maalt: snittet av lesing + svar per spoersmaal
+   * paa Halvors stasjon i dag. «Ti spoersmaal aa 0,24 Wh» var konstanten fra
+   * foer metodebyttet og ~30x for lav. Alt i Wh, som resten av tavla. */
+  const spmSnittWh = (T && Number(T.spoersmaal) > 0)
+    ? (Number(T.dekoding_wh) + Number(T.lesing_wh)) / Number(T.spoersmaal) : 0;
+  const maalWh = spmSnittWh;
+  const iRunden = maalWh > 0 ? wh % maalWh : 0;
+  const mangler = Math.max(0, maalWh - iRunden);
+  const andel = maalWh > 0 ? Math.min(100, (iRunden / maalWh) * 100) : 0;
+  const spmSveivet = maalWh > 0 ? Math.floor(wh / maalWh) : 0;
+  // ~40 W er det en person klarer aa holde paa en haandsveiv over tid — en antakelse, og den staar paa skjermen.
+  const sek = Math.round(mangler * 3600 / 40);
 
 
   document.getElementById("rot").innerHTML = `
@@ -215,17 +226,17 @@ function tegn() {
     <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Klarer dere å sveive inn like mye som vi bruker?</div>
   </div>
 
-  <div class="kol" style="gap:12px;padding:22px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv ? "none" : "flex"}">
+  <div class="kol" style="gap:12px;padding:22px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv || maalWh === 0 ? "none" : "flex"}">
     <div style="display:flex;justify-content:space-between;align-items:baseline">
-      <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ti spørsmål</span>
-      <span class="mono disp${nytt("iRunden", Math.round(iRunden))}" style="font-size:30px;font-weight:500;color:#4ade80">${sep(iRunden)} <span style="font-size:20px;color:#8a8a8a">/ ${sep(MAAL_JOULE)} J</span></span>
+      <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ett spørsmål${spmSveivet > 0 ? ` <span style="color:#4ade80">(${spmSveivet} sveivet inn så langt)</span>` : ""}</span>
+      <span class="mono disp${nytt("iRunden", Math.round(iRunden * 100))}" style="font-size:30px;font-weight:500;color:#4ade80">${komma(iRunden, 2)} <span style="font-size:20px;color:#8a8a8a">/ ${komma(maalWh, 1)} Wh</span></span>
     </div>
     <div style="height:44px;background:#1c1c1c;border-radius:10px;overflow:hidden">
       <div style="width:${andel}%;height:100%;background:#4ade80;border-radius:10px" class="fyll"></div>
     </div>
     <div style="display:flex;justify-content:space-between">
-      <span style="font-size:17px;color:#9a9a9a">Dere mangler ${sep(mangler)} joule</span>
-      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva</span>
+      <span style="font-size:17px;color:#9a9a9a">Dere mangler ${komma(mangler, 2)} Wh — snittet for ett spørsmål i dag</span>
+      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva, ved 40 W</span>
     </div>
   </div>
 
