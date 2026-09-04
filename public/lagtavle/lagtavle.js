@@ -39,7 +39,7 @@ const desimaler = (x) => x >= 10 ? 1 : x >= 1 ? 2 : Math.min(6, Math.ceil(-Math.
 const wattTekst = (w) => w > 0 ? `${komma(w, desimaler(w))} W` : "0 W";
 const whTekst = (x) => x > 0 ? `${komma(x, desimaler(x))} Wh` : "0 Wh";
 const tidTekst = (sek) => sek > 63072000 ? `${komma(sek / 31536000, 1)} år` : sek > 5184000 ? `${komma(sek / 2592000, 0)} måneder` : sek > 172800 ? `${komma(sek / 86400, 0)} døgn` : sek > 7200 ? `${komma(sek / 3600, 1)} timer` : sek > 90 ? `${komma(sek / 60, 0)} minutter` : `${komma(sek, 0)} sekunder`;
-const lengde = (mm) => mm < 10 ? `${komma(mm, 1)} millimeter` : mm < 1000 ? `${komma(mm / 10, 0)} centimeter` : mm < 100000 ? `${komma(mm / 1000, 0)} meter` : `${komma(mm / 1e6, 1)} kilometer`;
+const lengde = (mm) => mm < 10 ? `${komma(mm, 1)} millimeter` : mm < 1000 ? `${komma(mm / 10, 0)} centimeter` : mm < 1e7 ? `${komma(mm / 1000, 0)} meter` : `${komma(mm / 1e6, 1)} kilometer`;
 
 function nytt(nokkel, verdi) {
   const endret = forrige[nokkel] !== undefined && forrige[nokkel] !== verdi;
