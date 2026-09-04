@@ -34,7 +34,8 @@ let forrige = {};
 
 const sep = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 const komma = (n, d = 1) => (Math.round(Number(n) * 10 ** d) / 10 ** d).toString().replace(".", ",");
-const whTekst = (x) => x > 0 && x < 0.01 ? `${komma(x * 1000, 1)} mWh` : `${komma(x, x < 1 ? 2 : 1)} Wh`;
+// Sveiva gir mikrowattimer per oekt; «0 mWh» sier at ingenting skjedde, og det er usant.
+const whTekst = (x) => x > 0 && x < 0.001 ? `${komma(x * 1e6, 0)} µWh` : x > 0 && x < 0.01 ? `${komma(x * 1000, 1)} mWh` : `${komma(x, x < 1 ? 2 : 1)} Wh`;
 
 function nytt(nokkel, verdi) {
   const endret = forrige[nokkel] !== undefined && forrige[nokkel] !== verdi;
@@ -282,7 +283,7 @@ function tegn() {
       </div>
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
-          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${wh > 0 && wh < 0.01 ? komma(wh * 1000, 1) : komma(wh, wh < 1 ? 2 : 1)}<span style="font-size:20px;color:#9a9a9a"> ${wh > 0 && wh < 0.01 ? "mWh" : "Wh"}</span></div>
+          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${whTekst(wh).split(" ")[0]}<span style="font-size:20px;color:#9a9a9a"> ${whTekst(wh).split(" ")[1]}</span></div>
           <div class="statNavn">sveivet inn</div>
         </div>
         <div class="stat">
