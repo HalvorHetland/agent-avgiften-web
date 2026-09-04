@@ -276,7 +276,7 @@ function tegn() {
       </div>
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
-          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${komma(wh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
+          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${komma(wh, wh < 1 ? 2 : 1)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
           <div class="statNavn">sveivet inn</div>
         </div>
         <div class="stat">
