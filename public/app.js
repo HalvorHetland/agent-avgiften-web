@@ -714,11 +714,14 @@ function rommetBoks() {
   const maaltW = sveivS > 5 ? Number(t.joules) / sveivS : 0;
   const mittWh = r ? (r.raa.energy_wh ?? 0) + (r.raa.lesing_wh ?? 0) + (r.rein.energy_wh ?? 0) + (r.rein.lesing_wh ?? 0) : 0;
   if (maaltW > 0 && mittWh > 0) {
-    const s = mittWh * 3600 / maaltW;
-    const tid = s > 172800 ? `${komma(s / 86400, 0)} døgn` : s > 7200 ? `${komma(s / 3600, 1)} timer` : `${komma(s / 60, 0)} minutter`;
+    const tidTekst = (s) => s > 63072000 ? `${komma(s / 31536000, 1)} år` : s > 5184000 ? `${komma(s / 2592000, 0)} måneder` : s > 172800 ? `${komma(s / 86400, 0)} døgn` : s > 7200 ? `${komma(s / 3600, 1)} timer` : `${komma(s / 60, 0)} minutter`;
+    const tid = tidTekst(mittWh * 3600 / maaltW);
+    // …og dette var bare ditt. Alle spoersmaalene paa denne stasjonen i dag:
+    const dagWh = Number(t.dekoding_wh || 0) + Number(t.lesing_wh || 0);
+    const dag = dagWh > mittWh * 1.5 ? ` Og det var bare ditt: alle spørsmålene her i dag (${komma(dagWh, 1)} Wh) er <span class="mono" style="color:#fbbf24">${tidTekst(dagWh * 3600 / maaltW)}</span> på sveiva.` : "";
     return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
       <div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Kunne du sveivet det inn selv?</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva ved fellesskjermen lager <span class="mono" style="color:#4ade80">${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"}</span>, målt. Strømmen til spørsmålet ditt ville tatt <span class="mono" style="color:#fbbf24">${tid}</span> på den.</div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva ved fellesskjermen lager <span class="mono" style="color:#4ade80">${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"}</span>, målt. Strømmen til spørsmålet ditt ville tatt <span class="mono" style="color:#fbbf24">${tid}</span> på den.${dag}</div>
     </div>`;
   }
   return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
