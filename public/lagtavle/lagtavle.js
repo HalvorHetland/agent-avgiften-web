@@ -34,6 +34,7 @@ let forrige = {};
 
 const sep = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 const komma = (n, d = 1) => (Math.round(Number(n) * 10 ** d) / 10 ** d).toString().replace(".", ",");
+const whTekst = (x) => x > 0 && x < 0.01 ? `${komma(x * 1000, 1)} mWh` : `${komma(x, x < 1 ? 2 : 1)} Wh`;
 
 function nytt(nokkel, verdi) {
   const endret = forrige[nokkel] !== undefined && forrige[nokkel] !== verdi;
