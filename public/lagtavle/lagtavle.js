@@ -239,7 +239,12 @@ function tegn() {
     <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Klarer dere å sveive inn like mye som vi bruker?</div>
   </div>
 
-  <div class="kol" style="gap:8px;padding:14px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv || maalWh === 0 ? "none" : "flex"}">
+  ${!ingenSveiv && maalWh > 0 && maaltW > 0 && maaltW < 0.1 ? `
+  <div style="display:flex;align-items:center;gap:26px;padding:14px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0">
+    <span class="mono disp" style="font-size:30px;font-weight:500;color:#4ade80;flex-shrink:0">${komma(maaltW * 1000, 0)} mW</span>
+    <span style="font-size:20px;color:#ededed;line-height:1.4">Så mye strøm lager sveiva, målt. Ett spørsmål koster ${komma(maalWh, 1)} Wh — det er <span style="color:#fbbf24">${komma(maalWh / maaltW / 24, 0)} døgn</span> på sveiva. Kroppene deres har brukt <span style="color:#fbbf24">${komma(kroppKcal, kroppKcal < 10 ? 1 : 0)} kcal</span> på det så langt.</span>
+  </div>` : ""}
+  <div class="kol" style="gap:8px;padding:14px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv || maalWh === 0 || (maaltW > 0 && maaltW < 0.1) ? "none" : "flex"}">
     <div style="display:flex;justify-content:space-between;align-items:baseline">
       <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ett spørsmål${spmSveivet > 0 ? ` <span style="color:#4ade80">(${spmSveivet} sveivet inn så langt)</span>` : ""}</span>
       <span class="mono disp${nytt("iRunden", Math.round(iRunden * 100))}" style="font-size:30px;font-weight:500;color:#4ade80">${komma(iRunden, 2)} <span style="font-size:20px;color:#8a8a8a">/ ${komma(maalWh, 1)} Wh</span></span>
@@ -276,13 +281,13 @@ function tegn() {
       </div>
       <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
         <div class="stat">
-          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${komma(wh, wh < 1 ? 2 : 1)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
+          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${wh > 0 && wh < 0.01 ? komma(wh * 1000, 1) : komma(wh, wh < 1 ? 2 : 1)}<span style="font-size:20px;color:#9a9a9a"> ${wh > 0 && wh < 0.01 ? "mWh" : "Wh"}</span></div>
           <div class="statNavn">sveivet inn</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall" style="color:#fbbf24">${ingenSveiv ? "—" : komma(kroppKcal, kroppKcal < 10 ? 1 : 0)}<span style="font-size:20px;color:#9a9a9a"> kcal</span></div>
           <div class="statNavn">kroppene deres brukte, anslag</div>
-          <div style="font-size:12.5px;color:#767676;margin-top:2px">${ingenSveiv ? `${komma(KROPP_W, 0)} W under sveiving, ikke målt` : `≈ ${komma(kroppWh, 1)} Wh for ${komma(wh, 2)} Wh strøm`}</div>
+          <div style="font-size:12.5px;color:#767676;margin-top:2px">${ingenSveiv ? `${komma(KROPP_W, 0)} W under sveiving, ikke målt` : `≈ ${komma(kroppWh, 1)} Wh for ${whTekst(wh)} strøm`}</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall${nytt("aiWh", Math.round(aiWh * 10))}" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
@@ -332,7 +337,7 @@ function tegn() {
         <div class="kol" style="gap:8px;padding-top:14px;border-top:1px solid #282828">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
             <span style="font-size:20px;color:#ededed">Sveiva <span style="font-size:15px;color:#4ade80">— laget av rommet</span></span>
-            <span class="mono" style="font-size:20px;color:#4ade80">${ingenSveiv ? "ikke koblet til" : komma(wh, 2) + " Wh"}</span>
+            <span class="mono" style="font-size:20px;color:#4ade80">${ingenSveiv ? "ikke koblet til" : whTekst(wh)}</span>
           </div>
           <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
             <div style="width:${ingenSveiv ? 0 : Math.max(0.4, (wh / maksWh) * 100)}%;height:100%;background:#4ade80"></div>
