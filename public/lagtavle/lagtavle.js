@@ -179,6 +179,38 @@ function arealdiagram(bredde, hoyde) {
   </svg>`;
 }
 
+/* Tidsstigen. Naar sveiva gir milliwatt er stroem-mot-stroem et forhold paa
+ * millioner, og et areal kan ikke vise det. Tid kan: alt regnes om til
+ * «hvor lenge paa sveiva», og aksen har navngitte enheter — sekund, minutt,
+ * time, doegn, maaned, aar. Det er en logaritmisk skala, men en folk leser,
+ * fordi enhetene bærer skalaen. Tre stolper: det rommet faktisk sveivet i
+ * dag (maalt tid), ett spoersmaal, og hele dagens AI-bruk. */
+function tidsstige(bredde, hoyde, sveivS, spmS, dagS, maaltW) {
+  const P = { v: 250, h: 120, t: 46, b: 44 };
+  const iw = bredde - P.v - P.h, ih = hoyde - P.t - P.b;
+  const lo = 0, hi = Math.log10(Math.max(dagS * 3, 3.2e8));      // fra 1 s til minst 10 aar
+  const x = (sek) => P.v + (Math.log10(Math.max(sek, 1)) - lo) / (hi - lo) * iw;
+  const enheter = [[1, "1 sekund"], [60, "1 minutt"], [3600, "1 time"], [86400, "1 døgn"], [2592000, "1 måned"], [31536000, "1 år"], [315360000, "10 år"]];
+  const tekst = (sek) => sek > 63072000 ? `${komma(sek / 31536000, 1)} år` : sek > 5184000 ? `${komma(sek / 2592000, 0)} måneder` : sek > 172800 ? `${komma(sek / 86400, 0)} døgn` : sek > 7200 ? `${komma(sek / 3600, 1)} timer` : sek > 90 ? `${komma(sek / 60, 0)} minutter` : `${komma(sek, 0)} sekunder`;
+  const rader = [
+    { navn: "Det dere har sveivet i dag", sek: sveivS, farge: "#4ade80", hoyre: `målt` },
+    { navn: "Ett spørsmål",               sek: spmS,   farge: "#f97316", hoyre: `` },
+    { navn: "Alt AI-en har brukt i dag",  sek: dagS,   farge: "#c2410c", hoyre: `` },
+  ];
+  const rh = ih / 3, bh = Math.min(38, rh * 0.5);
+  return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="100%" height="${hoyde}" preserveAspectRatio="xMidYMid meet" role="img"
+      aria-label="Tidsstige: hvor lenge sveiva maatte gaatt for det rommet sveivet, ett spoersmaal, og dagens AI-bruk">
+    <text x="${P.v}" y="18" fill="#8a8a8a" font-size="14" font-family="IBM Plex Sans, sans-serif">Alt regnet i tid på sveiva (${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"}, målt). Hvert hakk til høyre er en større enhet.</text>
+    ${enheter.filter(([sek]) => Math.log10(sek) <= hi).map(([sek, navn]) => `
+      <line x1="${x(sek)}" y1="${P.t}" x2="${x(sek)}" y2="${P.t + ih}" stroke="#282828" stroke-width="1"/>
+      <text x="${x(sek)}" y="${hoyde - 14}" text-anchor="middle" fill="#767676" font-size="13" font-family="IBM Plex Mono, monospace">${navn}</text>`).join("")}
+    ${rader.map((r, i) => { const y = P.t + rh * i + (rh - bh) / 2; const xe = x(r.sek); return `
+      <text x="${P.v - 14}" y="${y + bh / 2 + 5}" text-anchor="end" fill="#ededed" font-size="16" font-family="IBM Plex Sans, sans-serif">${r.navn}</text>
+      <rect x="${P.v}" y="${y}" width="${Math.max(3, xe - P.v)}" height="${bh}" rx="5" fill="${r.farge}" fill-opacity="${i === 0 ? 0.95 : 0.85}"/>
+      <text x="${xe + 10}" y="${y + bh / 2 + 6}" fill="${r.farge}" font-size="18" font-weight="500" font-family="IBM Plex Mono, monospace">${tekst(r.sek)}</text>`; }).join("")}
+  </svg>`;
+}
+
 function tegn() {
   const kall = T ? Number(T.kall) : 0;
   const joules = T ? Number(T.joules) : 0;
@@ -264,8 +296,8 @@ function tegn() {
 
     <div class="kort kol" style="flex-grow:1;gap:14px;padding:26px 30px;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="lbl" style="font-size:15px">Energi gjennom dagen</div>
-        <div style="display:flex;gap:22px;align-items:center">
+        <div class="lbl" style="font-size:15px">${(!ingenSveiv && maaltW > 0 && aiWh > 0 && wh / aiWh < 0.01) ? "Hvor lenge på sveiva?" : "Energi gjennom dagen"}</div>
+        <div style="display:${(!ingenSveiv && maaltW > 0 && aiWh > 0 && wh / aiWh < 0.01) ? "none" : "flex"};gap:22px;align-items:center">
           <div style="display:flex;align-items:center;gap:9px">
             <div style="width:13px;height:13px;border-radius:3px;background:#4ade80"></div>
             <span style="font-size:16px;color:#cfcfcf">sveivet inn</span>
@@ -277,7 +309,7 @@ function tegn() {
         </div>
       </div>
       <div id="grafboks" style="flex-grow:1;min-height:0"></div>
-      <div style="font-size:15px;color:#8a8a8a;line-height:1.5;margin-top:-4px">
+      <div id="graftekst" style="font-size:15px;color:#8a8a8a;line-height:1.5;margin-top:-4px">
         Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
         har laget selv — resten er kjøpt.${FELLES ? " Kurven er den felles potten — begge stasjonene." : ""}
       </div>
@@ -391,7 +423,17 @@ function tegn() {
   const boks = document.getElementById("grafboks");
   if (boks) {
     const h = Math.round(boks.clientHeight);
-    boks.innerHTML = arealdiagram(1166, h > 80 ? h : 300);
+    // Under 1 % dekning og med maalt sveiveeffekt: arealet ville vaert helt
+    // oransje. Tidsstigen viser forholdet i stedet.
+    const stige = !ingenSveiv && maaltW > 0 && aiWh > 0 && wh / aiWh < 0.01;
+    boks.innerHTML = stige
+      ? tidsstige(1166, h > 80 ? h : 300, sveivS, maalWh > 0 ? maalWh * 3600 / maaltW : 0, aiWh * 3600 / maaltW, maaltW)
+      : arealdiagram(1166, h > 80 ? h : 300);
+    const bildetekst = document.getElementById("graftekst");
+    if (bildetekst && stige) {
+      const personer = Math.round(aiWh / (maaltW * 8));
+      bildetekst.textContent = `Grønt er det dere faktisk har sveivet. For å lage dagens AI-strøm på slike sveiver måtte ${sep(personer)} personer sveivet i åtte timer hver. Målt effekt på sveiva ganger tid — ingenting anslått.`;
+    }
   }
 }
 
