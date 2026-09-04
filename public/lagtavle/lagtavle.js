@@ -249,7 +249,7 @@ function tegn() {
     </div>
     <div style="display:flex;justify-content:space-between">
       <span style="font-size:17px;color:#9a9a9a">Dere mangler ${komma(mangler, 2)} Wh — snittet for ett spørsmål i dag</span>
-      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 7200 ? komma(sek / 3600, 1) + " timer" : sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva${maaltW > 0 ? ` (målt ${komma(maaltW, 1)} W)` : ", ved 40 W antatt"}</span>
+      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 172800 ? komma(sek / 86400, 0) + " døgn" : sek > 7200 ? komma(sek / 3600, 1) + " timer" : sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva${maaltW > 0 ? ` (målt ${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"})` : ", ved 40 W antatt"}</span>
     </div>
   </div>
 
