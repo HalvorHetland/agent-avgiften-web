@@ -107,9 +107,9 @@ function tegnPuls() {
       <div class="kol" style="gap:3px"><div class="mono disp" style="font-size:30px;color:#ededed">${komma(Number(PULS.sek), 0)} s</div><div style="font-size:14px;color:#8a8a8a">denne økta</div></div>
       <div class="kol" style="gap:3px"><div class="mono disp" style="font-size:30px;color:#ededed">${komma(Number(PULS.joule), 2)} J</div><div style="font-size:14px;color:#8a8a8a">= ${whTekst(Number(PULS.joule) / 3600)}</div></div>
     </div>` : `
-    <div class="kol" style="gap:8px;justify-content:center;flex-grow:1">
-      <div class="disp" style="font-size:30px;font-weight:700;color:#767676">Sveiva står stille</div>
-      <div style="font-size:17px;color:#8a8a8a;line-height:1.5">Ta i, så våkner tallet her. Hver økt måles: volt ganger ampere ganger tid.</div>
+    <div class="kol" style="gap:14px;justify-content:center;flex-grow:1">
+      <div class="disp" style="font-size:44px;font-weight:700;color:#767676;line-height:1.1">Sveiva står stille</div>
+      <div style="font-size:20px;color:#9a9a9a;line-height:1.5;max-width:520px">Ta i, så våkner tallet her i det du begynner. Hver økt måles: volt ganger ampere ganger tid — og legges til regnestykket øverst.</div>
     </div>`;
 }
 
@@ -173,7 +173,10 @@ function tegn() {
   </div>
 
   <div style="display:flex;gap:26px;flex-grow:1;min-height:0">
-    <div class="kort kol" id="naa" style="flex:1;gap:0;padding:26px 30px;border-color:#1e3a24;min-height:0"></div>
+    <div class="kort kol" style="flex:1;gap:14px;padding:26px 30px;border-color:#1e3a24;min-height:0">
+      <div class="lbl" style="color:#4ade80;font-size:15px">Nå på sveiva</div>
+      <div class="kol" id="naa" style="flex-grow:1;min-height:0;justify-content:center"></div>
+    </div>
 
     <div class="kort kol" style="width:640px;flex-shrink:0;gap:12px;padding:22px 30px;border-color:#3a2412;min-height:0">
       <div class="lbl" style="color:#f97316;font-size:15px">Energi i dag — hele rommet</div>
