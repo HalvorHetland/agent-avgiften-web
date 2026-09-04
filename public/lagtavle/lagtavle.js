@@ -216,8 +216,13 @@ function tegn() {
   const mangler = Math.max(0, maalWh - iRunden);
   const andel = maalWh > 0 ? Math.min(100, (iRunden / maalWh) * 100) : 0;
   const spmSveivet = maalWh > 0 ? Math.floor(wh / maalWh) : 0;
-  // ~40 W er det en person klarer aa holde paa en haandsveiv over tid — en antakelse, og den staar paa skjermen.
-  const sek = Math.round(mangler * 3600 / 40);
+  /* Effekten sveiva faktisk gir: joule delt paa maalt sveivetid. 40 W var en
+   * antakelse om en person; sveiva som ble bygget gir under 1 W. Foer
+   * foerste oekt finnes ikke tallet, og da staar antakelsen paa skjermen. */
+  const sveivS = T ? Number(T.sveiv_ms || 0) / 1000 : 0;
+  const maaltW = sveivS > 5 ? joules / sveivS : 0;
+  const wAntatt = maaltW > 0 ? maaltW : 40;
+  const sek = Math.round(mangler * 3600 / wAntatt);
 
 
   document.getElementById("rot").innerHTML = `
@@ -236,7 +241,7 @@ function tegn() {
     </div>
     <div style="display:flex;justify-content:space-between">
       <span style="font-size:17px;color:#9a9a9a">Dere mangler ${komma(mangler, 2)} Wh — snittet for ett spørsmål i dag</span>
-      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva, ved 40 W</span>
+      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 7200 ? komma(sek / 3600, 1) + " timer" : sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva${maaltW > 0 ? ` (målt ${komma(maaltW, 1)} W)` : ", ved 40 W antatt"}</span>
     </div>
   </div>
 
