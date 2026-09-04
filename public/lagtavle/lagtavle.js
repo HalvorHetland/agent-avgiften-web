@@ -22,6 +22,7 @@ const db = supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
  * Standardverdiene under gjelder bare til første henting. */
 let MOBIL_WH = 16;
 let GLASS_ML = 200;
+let KROPP_W = 250;   // anslaatt metabolsk effekt under lett armsveiving, fra innstillinger
 
 let T = null;        // booth_totals
 let LINJE = [];      // tidslinje, kvarter for kvarter
@@ -62,6 +63,7 @@ async function hent() {
     for (const k of svar.konstanter.data ?? []) {
       if (k.noekkel === "mobil_wh") MOBIL_WH = Number(k.verdi);
       if (k.noekkel === "glass_ml") GLASS_ML = Number(k.verdi);
+      if (k.noekkel === "kropp_w_sveiv") KROPP_W = Number(k.verdi);
     }
     document.getElementById("frakoblet").classList.remove("vis");
   } catch {
@@ -220,6 +222,12 @@ function tegn() {
    * antakelse om en person; sveiva som ble bygget gir under 1 W. Foer
    * foerste oekt finnes ikke tallet, og da staar antakelsen paa skjermen. */
   const sveivS = T ? Number(T.sveiv_ms || 0) / 1000 : 0;
+  /* Kroppens energi: et ANSLAG for engasjement, holdt helt utenfor det
+   * groenne tallet. Regnes fra sveivetid, ikke stroem — med 1:100-gir gaar
+   * nesten all innsatsen til friksjon, saa stroemmen sier lite om hvor hardt
+   * noen jobbet. Konstanten og grunnlaget staar i innstillinger. */
+  const kroppWh = KROPP_W * sveivS / 3600;
+  const kroppKcal = kroppWh * 0.86;
   const maaltW = sveivS > 5 ? joules / sveivS : 0;
   const wAntatt = maaltW > 0 ? maaltW : 40;
   const sek = Math.round(mangler * 3600 / wAntatt);
@@ -270,6 +278,11 @@ function tegn() {
         <div class="stat">
           <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${komma(wh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
           <div class="statNavn">sveivet inn</div>
+        </div>
+        <div class="stat">
+          <div class="mono disp statTall" style="color:#fbbf24">${ingenSveiv ? "—" : komma(kroppKcal, kroppKcal < 10 ? 1 : 0)}<span style="font-size:20px;color:#9a9a9a"> kcal</span></div>
+          <div class="statNavn">kroppene deres brukte, anslag</div>
+          <div style="font-size:12.5px;color:#767676;margin-top:2px">${ingenSveiv ? `${komma(KROPP_W, 0)} W under sveiving, ikke målt` : `≈ ${komma(kroppWh, 1)} Wh for ${komma(wh, 2)} Wh strøm`}</div>
         </div>
         <div class="stat">
           <div class="mono disp statTall${nytt("aiWh", Math.round(aiWh * 10))}" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
@@ -358,7 +371,7 @@ function tegn() {
           ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
           : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
       }</div>
-      <div style="font-size:15px;color:#8a8a8a;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides.</div>
+      <div style="font-size:15px;color:#8a8a8a;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides. Gult er et anslag for engasjement: kroppen bruker ~${komma(KROPP_W, 0)} W ved lett armsveiving (3 MET), regnet fra sveivetiden — det går aldri inn i det grønne.</div>
     </div>
   </div>`;
 
