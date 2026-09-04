@@ -236,8 +236,8 @@ function tegn() {
 
   document.getElementById("rot").innerHTML = `
   <div class="kol" style="gap:9px;align-items:center;flex-shrink:0">
-    <div class="lbl" style="color:#4ade80;font-size:15px">Rommet mot AI-en</div>
-    <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Klarer dere å sveive inn like mye som vi bruker?</div>
+    <div class="lbl" style="color:#4ade80;font-size:15px">Sveiva mot AI-en</div>
+    <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Hvor lenge må du sveive for ett spørsmål?</div>
   </div>
 
   ${!ingenSveiv && maalWh > 0 && maaltW > 0 && maaltW < 0.1 ? `
@@ -375,7 +375,9 @@ function tegn() {
           ? "Sveiva er ikke koblet til enda. Tokentallene er ekte målinger; det grønne kommer så snart sveiva er på plass."
         : dekning >= 100
           ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
-          : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
+          : (maaltW > 0 && maaltW < 0.1)
+          ? `Alt AI-en har brukt i dag, ${komma(aiWh, 1)} Wh, er ${(() => { const d = aiWh / maaltW / 24; return d > 730 ? komma(d / 365, 1) + " år" : d > 60 ? komma(d / 30, 0) + " måneder" : komma(d, 0) + " døgn"; })()} på denne sveiva.`
+        : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
       }</div>
       <div style="font-size:15px;color:#8a8a8a;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides. Gult er et anslag for engasjement: kroppen bruker ~${komma(KROPP_W, 0)} W ved lett armsveiving (3 MET), regnet fra sveivetiden — det går aldri inn i det grønne.</div>
     </div>

@@ -706,9 +706,24 @@ function s6() {
  * kostet; produksjonen skjer et annet sted i rommet. Denne boksen er broen
  * mellom de to — den lover ikke et tall, den peker på et sted. */
 function rommetBoks() {
+  /* Aha-et: hvor lenge maatte DU sveivet for strommen til DITT spoersmaal.
+   * Sveivas effekt er maalt (joule / sveivetid fra booth_totals); foer
+   * foerste oekt finnes ikke tallet, og da peker boksen bare paa sveiva. */
+  const t = S.totaler, r = S.resultat;
+  const sveivS = t ? Number(t.sveiv_ms || 0) / 1000 : 0;
+  const maaltW = sveivS > 5 ? Number(t.joules) / sveivS : 0;
+  const mittWh = r ? (r.raa.energy_wh ?? 0) + (r.raa.lesing_wh ?? 0) + (r.rein.energy_wh ?? 0) + (r.rein.lesing_wh ?? 0) : 0;
+  if (maaltW > 0 && mittWh > 0) {
+    const s = mittWh * 3600 / maaltW;
+    const tid = s > 172800 ? `${komma(s / 86400, 0)} døgn` : s > 7200 ? `${komma(s / 3600, 1)} timer` : `${komma(s / 60, 0)} minutter`;
+    return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
+      <div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Kunne du sveivet det inn selv?</div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva ved fellesskjermen lager <span class="mono" style="color:#4ade80">${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"}</span>, målt. Strømmen til spørsmålet ditt ville tatt <span class="mono" style="color:#fbbf24">${tid}</span> på den.</div>
+    </div>`;
+  }
   return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
-    <div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Vil du lage strømmen selv?</div>
-    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva står ved den store fellesskjermen. Alt rommet sveiver går i samme pott, mot alt de to stasjonene har brukt til sammen.</div>
+    <div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Vil du prøve å lage strømmen selv?</div>
+    <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva står ved den store fellesskjermen. Der ser du hvor lenge du måtte sveivet for ett spørsmål.</div>
   </div>`;
 }
 
