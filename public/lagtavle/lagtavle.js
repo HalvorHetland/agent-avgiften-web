@@ -25,17 +25,21 @@ let GLASS_ML = 200;
 let KROPP_W = 250;   // anslaatt metabolsk effekt under lett armsveiving, fra innstillinger
 
 let T = null;        // booth_totals
-let LINJE = [];      // tidslinje, kvarter for kvarter
 /* Felles energipott: Gjermunds `event_totals`, som begge stasjonene legger inn
  * i via `increment_totals`. Dette er tallet lagtavla skal vise. */
 let FELLES = null;
-let FORLOEP = [];    // felles pott gjennom dagen, logget ved hver endring
 let forrige = {};
 
 const sep = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 const komma = (n, d = 1) => (Math.round(Number(n) * 10 ** d) / 10 ** d).toString().replace(".", ",");
 // Sveiva gir mikrowattimer per oekt; «0 mWh» sier at ingenting skjedde, og det er usant.
-const whTekst = (x) => x > 0 && x < 0.001 ? `${komma(x * 1e6, 0)} µWh` : x > 0 && x < 0.01 ? `${komma(x * 1000, 1)} mWh` : `${komma(x, x < 1 ? 2 : 1)} Wh`;
+/* Alltid W og Wh — med saa mange desimaler som trengs for to gjeldende sifre.
+ * «0,004 W» sier studentene noe; «4 mW» gjoer det ikke. */
+const desimaler = (x) => x >= 10 ? 1 : x >= 1 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.max(x, 1e-7))) + 1);
+const wattTekst = (w) => w > 0 ? `${komma(w, desimaler(w))} W` : "0 W";
+const whTekst = (x) => x > 0 ? `${komma(x, desimaler(x))} Wh` : "0 Wh";
+const tidTekst = (sek) => sek > 63072000 ? `${komma(sek / 31536000, 1)} år` : sek > 5184000 ? `${komma(sek / 2592000, 0)} måneder` : sek > 172800 ? `${komma(sek / 86400, 0)} døgn` : sek > 7200 ? `${komma(sek / 3600, 1)} timer` : sek > 90 ? `${komma(sek / 60, 0)} minutter` : `${komma(sek, 0)} sekunder`;
+const lengde = (mm) => mm < 10 ? `${komma(mm, 1)} millimeter` : mm < 1000 ? `${komma(mm / 10, 0)} centimeter` : mm < 100000 ? `${komma(mm / 1000, 0)} meter` : `${komma(mm / 1e6, 1)} kilometer`;
 
 function nytt(nokkel, verdi) {
   const endret = forrige[nokkel] !== undefined && forrige[nokkel] !== verdi;
@@ -50,18 +54,14 @@ async function hent() {
     const svar = Object.fromEntries(await Promise.all(
       [
         ["totaler", db.from("booth_totals").select("*").single()],
-        ["linje", db.from("tidslinje").select("*")],
         ["felles", db.from("event_totals").select("*").maybeSingle()],
-        ["forloep", db.from("energi_forloep").select("*")],
         ["konstanter", db.from("konstanter").select("*")],
       ].map(async ([navn, q]) => [navn, await q]),
     ));
 
     if (svar.totaler.error) throw svar.totaler.error;
     T = svar.totaler.data;
-    LINJE = Array.isArray(svar.linje.data) ? svar.linje.data : [];
     FELLES = svar.felles.data ?? null;
-    FORLOEP = Array.isArray(svar.forloep.data) ? svar.forloep.data : [];
     for (const k of svar.konstanter.data ?? []) {
       if (k.noekkel === "mobil_wh") MOBIL_WH = Number(k.verdi);
       if (k.noekkel === "glass_ml") GLASS_ML = Number(k.verdi);
@@ -81,191 +81,63 @@ db.channel("booth", { config: { private: true } })
 setInterval(hent, 15000);
 hent();
 
-/* Stablet arealdiagram: AI-energi brukt, delt i dekket og udekket.
- *
- * Total høyde = kall × 0,24 Wh, akkumulert over dagen. Det grønne båndet er
- * energien rommet faktisk har sveivet inn; det oransje er det som mangler.
- * De to summerer til totalen, så stablingen er meningsbærende — den gjør
- * underskuddet til et areal i stedet for en avstand man må måle.
- *
- * Sveiver rommet inn mer enn AI-en har brukt, kan grønt ikke vokse forbi
- * totalen — da ville diagrammet vist mer forbruk enn det som fant sted. Vi
- * klipper det, og bunnstripa sier fra at dekningen er over hundre.
- */
-function arealdiagram(bredde, hoyde) {
-  // Den oransje kurven er den FELLES potten, logget ved hver endring — både
-  // våre kall og Gjermunds chatbot-økter. Den grønne er sveivet energi,
-  // akkumulert fra crank_runs. Begge i Wh, som er poenget: nå deler vi enhet.
-  if (FORLOEP.length < 1 && !FELLES) {
-    return `<div style="height:${hoyde}px;display:flex;align-items:center;justify-content:center;color:#767676;font-size:18px">
-      Diagrammet tegner seg når standen har vært i gang en stund.</div>`;
-  }
-
-  // Sveiving per kvarter, akkumulert, som oppslag på tid.
-  const sveiv = [];
-  let sum = 0;
-  for (const r of [...LINJE].sort((a, b) => new Date(a.bolk) - new Date(b.bolk))) {
-    sum += Number(r.joules) / 3600;                       // joule -> Wh
-    sveiv.push({ t: new Date(r.bolk).getTime(), wh: sum });
-  }
-  const sveivetVed = (t) => {
-    let v = 0;
-    for (const p of sveiv) { if (p.t <= t) v = p.wh; else break; }
-    return v;
-  };
-
-  const serie = FORLOEP.map((r) => {
-    const t = new Date(r.t).getTime();
-    return { t, brukt: Number(r.total_energy_wh), sveivet: sveivetVed(t) };
-  });
-  /* Serien er pottens logg, og potten endrer seg bare naar en AI-oekt lander.
-   * Sveiver noen etter siste AI-oekt, finnes det ingen punkt aa henge det
-   * groenne paa — baandet uteble selv med rader i crank_runs. Et sluttpunkt
-   * «naa» drar kurven fram til klokka og tar med all sveiving hittil. */
-  if (serie.length === 0 && FELLES) {
-    // Ingen pott-endring de siste 12 timene, men potten finnes: start kurven
-    // en time tilbake paa dagens verdi, saa sveivingen har noe aa staa paa.
-    const t0 = Date.now() - 3600e3;
-    serie.push({ t: t0, brukt: Number(FELLES.total_energy_wh), sveivet: sveivetVed(t0) });
-  }
-  const naa = Date.now();
-  if (serie.length && serie[serie.length - 1].t < naa - 1000) {
-    const sist = serie[serie.length - 1];
-    serie.push({ t: naa, brukt: sist.brukt, sveivet: sveivetVed(naa) });
-  }
-  const harSveiv = serie.some((p) => p.sveivet > 0);
-
-  const maks = Math.max(...serie.map((s) => s.brukt), 0.001);
-  const P = { v: 62, h: 18, t: 14, b: 26 };
-  const iw = bredde - P.v - P.h, ih = hoyde - P.t - P.b;
-  // Tidsakse, ikke jevne steg: loggen kommer ujevnt, og en jevn akse ville
-  // strukket rolige perioder like brede som travle.
-  const t0 = serie[0].t, t1 = serie[serie.length - 1].t;
-  const spenn = Math.max(1, t1 - t0);
-  const x = (t) => P.v + ((t - t0) / spenn) * iw;
-  const y = (wh) => P.t + ih - (Math.min(wh, maks) / maks) * ih;
-
-  const topp = serie.map((s) => `${x(s.t)},${y(s.brukt)}`).join(" ");
-  const skille = serie.map((s) => `${x(s.t)},${y(Math.min(s.sveivet, s.brukt))}`).join(" ");
-  const bunn = `${x(t1)},${y(0)} ${x(t0)},${y(0)}`;
-
-  // Runde trinn (1, 2, 5, 10 ...) i stedet for fjerdedeler av maks: 36/73/109
-  // er ikke tall noen leser, 25/50/75/100 er det.
-  const trinn = (() => { const r = maks / 4, p = 10 ** Math.floor(Math.log10(r)), q = r / p;
-    return (q <= 1 ? 1 : q <= 2 ? 2 : q <= 5 ? 5 : 10) * p; })();
-  const nivaaer = []; for (let v = 0; v <= maks + 1e-9; v += trinn) nivaaer.push(v);
-  const linjer = nivaaer.map((wh, i) => {
-    const f = i === nivaaer.length - 1 ? 1 : 0;
-    return `<line x1="${P.v}" y1="${y(wh)}" x2="${bredde - P.h}" y2="${y(wh)}" stroke="#1c1c1c" stroke-width="1"/>
-      <text x="${P.v - 9}" y="${y(wh) + 5}" text-anchor="end" fill="#767676" font-size="13"
-        font-family="IBM Plex Mono, monospace">${komma(wh, wh < 10 ? 1 : 0)}${f === 1 ? " Wh" : ""}</text>`;
-  }).join("");
-
-  const klokke = (ms) => new Date(ms).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
-
-  return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="100%" height="${hoyde}"
-      preserveAspectRatio="xMidYMid meet" role="img"
-      aria-label="Stablet areal: felles AI-energi, delt i dekket av sveiving og udekket">
-    ${linjer}
-    <polygon points="${skille} ${topp.split(" ").reverse().join(" ")}" fill="#f97316" fill-opacity="0.85"/>
-    <polygon points="${skille} ${bunn}" fill="#4ade80" fill-opacity="0.9"/>
-    <polyline points="${topp}" fill="none" stroke="#fb923c" stroke-width="2"/>
-    ${harSveiv ? `<polyline points="${skille}" fill="none" stroke="#86efac" stroke-width="2"/>` : ""}
-    <text x="${P.v}" y="${hoyde - 7}" fill="#767676" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t0)}</text>
-    <text x="${bredde - P.h}" y="${hoyde - 7}" text-anchor="end" fill="#767676" font-size="13" font-family="IBM Plex Mono, monospace">${klokke(t1)}</text>
-    ${harSveiv ? "" : `<rect x="${P.v + 8}" y="${P.t + ih / 2 - 19}" width="372" height="30" rx="7" fill="#0a0a0a" fill-opacity="0.88"/>
-      <text x="${P.v + 20}" y="${P.t + ih / 2 + 1}" fill="#cfcfcf" font-size="17"
-      font-family="IBM Plex Sans, sans-serif">Grønt bånd kommer når sveiva er koblet til</text>`}
-  </svg>`;
+let PULS = null;   // siste puls fra brua: { watt, sek, joule, alder_s }
+async function hentPuls() {
+  try {
+    const r = await db.from("sveiv_naa").select("*").maybeSingle();
+    PULS = r.data ?? null;
+  } catch { PULS = null; }
+  tegnPuls();
 }
+setInterval(hentPuls, 2000);
+hentPuls();
 
-/* Tidsstigen. Naar sveiva gir milliwatt er stroem-mot-stroem et forhold paa
- * millioner, og et areal kan ikke vise det. Tid kan: alt regnes om til
- * «hvor lenge paa sveiva», og aksen har navngitte enheter — sekund, minutt,
- * time, doegn, maaned, aar. Det er en logaritmisk skala, men en folk leser,
- * fordi enhetene bærer skalaen. Tre stolper: det rommet faktisk sveivet i
- * dag (maalt tid), ett spoersmaal, og hele dagens AI-bruk. */
-function tidsstige(bredde, hoyde, sveivS, spmS, dagS, maaltW) {
-  const P = { v: 250, h: 120, t: 46, b: 44 };
-  const iw = bredde - P.v - P.h, ih = hoyde - P.t - P.b;
-  const lo = 0, hi = Math.log10(Math.max(dagS * 3, 3.2e8));      // fra 1 s til minst 10 aar
-  const x = (sek) => P.v + (Math.log10(Math.max(sek, 1)) - lo) / (hi - lo) * iw;
-  const enheter = [[1, "1 sekund"], [60, "1 minutt"], [3600, "1 time"], [86400, "1 døgn"], [2592000, "1 måned"], [31536000, "1 år"], [315360000, "10 år"]];
-  const tekst = (sek) => sek > 63072000 ? `${komma(sek / 31536000, 1)} år` : sek > 5184000 ? `${komma(sek / 2592000, 0)} måneder` : sek > 172800 ? `${komma(sek / 86400, 0)} døgn` : sek > 7200 ? `${komma(sek / 3600, 1)} timer` : sek > 90 ? `${komma(sek / 60, 0)} minutter` : `${komma(sek, 0)} sekunder`;
-  const rader = [
-    { navn: "Det dere har sveivet i dag", sek: sveivS, farge: "#4ade80", hoyre: `målt` },
-    { navn: "Ett spørsmål",               sek: spmS,   farge: "#f97316", hoyre: `` },
-    { navn: "Alt AI-en har brukt i dag",  sek: dagS,   farge: "#c2410c", hoyre: `` },
-  ];
-  const rh = ih / 3, bh = Math.min(38, rh * 0.5);
-  return `<svg viewBox="0 0 ${bredde} ${hoyde}" width="100%" height="${hoyde}" preserveAspectRatio="xMidYMid meet" role="img"
-      aria-label="Tidsstige: hvor lenge sveiva maatte gaatt for det rommet sveivet, ett spoersmaal, og dagens AI-bruk">
-    <text x="${P.v}" y="18" fill="#8a8a8a" font-size="14" font-family="IBM Plex Sans, sans-serif">Alt regnet i tid på sveiva (${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"}, målt). Hvert hakk til høyre er en større enhet.</text>
-    ${enheter.filter(([sek]) => Math.log10(sek) <= hi).map(([sek, navn]) => `
-      <line x1="${x(sek)}" y1="${P.t}" x2="${x(sek)}" y2="${P.t + ih}" stroke="#282828" stroke-width="1"/>
-      <text x="${x(sek)}" y="${hoyde - 14}" text-anchor="middle" fill="#767676" font-size="13" font-family="IBM Plex Mono, monospace">${navn}</text>`).join("")}
-    ${rader.map((r, i) => { const y = P.t + rh * i + (rh - bh) / 2; const xe = x(r.sek); return `
-      <text x="${P.v - 14}" y="${y + bh / 2 + 5}" text-anchor="end" fill="#ededed" font-size="16" font-family="IBM Plex Sans, sans-serif">${r.navn}</text>
-      <rect x="${P.v}" y="${y}" width="${Math.max(3, xe - P.v)}" height="${bh}" rx="5" fill="${r.farge}" fill-opacity="${i === 0 ? 0.95 : 0.85}"/>
-      <text x="${xe + 10}" y="${y + bh / 2 + 6}" fill="${r.farge}" font-size="18" font-weight="500" font-family="IBM Plex Mono, monospace">${tekst(r.sek)}</text>`; }).join("")}
-  </svg>`;
+/* Naa-panelet tegnes for seg, hvert 2. sekund, uten aa tegne hele tavla. */
+function tegnPuls() {
+  const el = document.getElementById("naa");
+  if (!el) return;
+  const fersk = PULS && Number(PULS.alder_s) < 6;
+  el.innerHTML = fersk ? `
+    <div style="display:flex;align-items:baseline;gap:14px">
+      <div class="mono disp" style="font-size:64px;font-weight:500;line-height:0.9;color:#4ade80">${komma(Number(PULS.watt), desimaler(Number(PULS.watt)))}</div>
+      <div style="font-size:22px;color:#9a9a9a">W akkurat nå</div>
+      <div style="width:14px;height:14px;border-radius:50%;background:#4ade80;margin-left:auto;animation:puls 1s ease-in-out infinite"></div>
+    </div>
+    <div style="display:flex;gap:34px;margin-top:14px">
+      <div class="kol" style="gap:3px"><div class="mono disp" style="font-size:30px;color:#ededed">${komma(Number(PULS.sek), 0)} s</div><div style="font-size:14px;color:#8a8a8a">denne økta</div></div>
+      <div class="kol" style="gap:3px"><div class="mono disp" style="font-size:30px;color:#ededed">${komma(Number(PULS.joule), 2)} J</div><div style="font-size:14px;color:#8a8a8a">= ${whTekst(Number(PULS.joule) / 3600)}</div></div>
+    </div>` : `
+    <div class="kol" style="gap:8px;justify-content:center;flex-grow:1">
+      <div class="disp" style="font-size:30px;font-weight:700;color:#767676">Sveiva står stille</div>
+      <div style="font-size:17px;color:#8a8a8a;line-height:1.5">Ta i, så våkner tallet her. Hver økt måles: volt ganger ampere ganger tid.</div>
+    </div>`;
 }
 
 function tegn() {
   const kall = T ? Number(T.kall) : 0;
   const joules = T ? Number(T.joules) : 0;
-  const wh = joules / 3600;
-  // Felles pott når den finnes; ellers vår egen andel. Potten dekker begge
-  // stasjonene, og det er den lagtavla handler om.
-  const aiWh = FELLES ? Number(FELLES.total_energy_wh) : kall * 0.24;
-  const vannL = FELLES ? Number(FELLES.total_water_l) : kall * 0.00026;
-
-  /* Del potten på de to stasjonene.
-   *
-   * Vår andel er eksakt: Edge-funksjonen legger inn 0,24 Wh per kall, og
-   * `kall` er antall rader i ai_runs. Resten er Gjermunds — han sender sine
-   * EcoLogits-summer inn i den samme potten fra chatbot-eksperimentet sitt.
-   *
-   * De to andelene er regnet med hver sin metode. Det står på skjermen; å
-   * skjule det ville gjort tallet penere og mindre sant. */
-  /* Vår andel er det radene våre faktisk la i potten: EcoLogits-dekoding
-   * pluss FLOP-basert lesing, summert i booth_totals. Resten er Gjermunds.
-   * (Tidligere sto kall × 0,24 her — det var riktig da bidragene var den
-   * flate konstanten, og galt i det øyeblikket de ble EcoLogits-verdier.) */
+  const wh = joules / 3600;                                     // sveivet inn, Wh, maalt
+  const aiWh = FELLES ? Number(FELLES.total_energy_wh) : (T ? Number(T.dekoding_wh) + Number(T.lesing_wh) : 0);
+  const vannL = FELLES ? Number(FELLES.total_water_l) : (T ? Number(T.vann_l) : 0);
   const vaarWh = T ? Number(T.dekoding_wh) + Number(T.lesing_wh) : 0;
   const vaarLesing = T ? Number(T.lesing_wh) : 0;
   const hansWh = Math.max(0, aiWh - vaarWh);
-  const maksWh = Math.max(vaarWh, hansWh, wh, 0.001);
-  const dekning = aiWh > 0 ? (wh / aiWh) * 100 : 0;
-  // Foer sveiva skriver til crank_runs skal skjermen si at tallet mangler,
-  // ikke vise 0 % som om rommet hadde sveivet. Bygges: se stand/sveiv/.
+  const maksWh = Math.max(vaarWh, hansWh, 0.001);
   const ingenSveiv = !T || Number(T.sveiveoekter) === 0;
 
-  // Målet fylles opp på nytt for hver runde på ti spørsmål.
-  /* Maalet er ett spoersmaal, maalt: snittet av lesing + svar per spoersmaal
-   * paa Halvors stasjon i dag. «Ti spoersmaal aa 0,24 Wh» var konstanten fra
-   * foer metodebyttet og ~30x for lav. Alt i Wh, som resten av tavla. */
-  const spmSnittWh = (T && Number(T.spoersmaal) > 0)
-    ? (Number(T.dekoding_wh) + Number(T.lesing_wh)) / Number(T.spoersmaal) : 0;
-  const maalWh = spmSnittWh;
-  const iRunden = maalWh > 0 ? wh % maalWh : 0;
-  const mangler = Math.max(0, maalWh - iRunden);
-  const andel = maalWh > 0 ? Math.min(100, (iRunden / maalWh) * 100) : 0;
-  const spmSveivet = maalWh > 0 ? Math.floor(wh / maalWh) : 0;
-  /* Effekten sveiva faktisk gir: joule delt paa maalt sveivetid. 40 W var en
-   * antakelse om en person; sveiva som ble bygget gir under 1 W. Foer
-   * foerste oekt finnes ikke tallet, og da staar antakelsen paa skjermen. */
+  // Ett spoersmaal: dagens maalte snitt paa Halvors stasjon (lesing + svar).
+  const spmSnittWh = (T && Number(T.spoersmaal) > 0) ? vaarWh / Number(T.spoersmaal) : 0;
   const sveivS = T ? Number(T.sveiv_ms || 0) / 1000 : 0;
-  /* Kroppens energi: et ANSLAG for engasjement, holdt helt utenfor det
-   * groenne tallet. Regnes fra sveivetid, ikke stroem — med 1:100-gir gaar
-   * nesten all innsatsen til friksjon, saa stroemmen sier lite om hvor hardt
-   * noen jobbet. Konstanten og grunnlaget staar i innstillinger. */
-  const kroppWh = KROPP_W * sveivS / 3600;
-  const kroppKcal = kroppWh * 0.86;
-  const maaltW = sveivS > 5 ? joules / sveivS : 0;
-  const wAntatt = maaltW > 0 ? maaltW : 40;
-  const sek = Math.round(mangler * 3600 / wAntatt);
+  const maaltW = sveivS > 5 ? joules / sveivS : 0;               // maalt sveiveeffekt, J/s
+  const kroppWh = KROPP_W * sveivS / 3600, kroppKcal = kroppWh * 0.86;
+  const spmS = maaltW > 0 && spmSnittWh > 0 ? spmSnittWh * 3600 / maaltW : 0;
+  const dagS = maaltW > 0 ? aiWh * 3600 / maaltW : 0;
+  const forhold = wh > 0 ? aiWh / wh : 0;
+  const forholdTekst = forhold >= 1e6 ? `1 : ${komma(forhold / 1e6, 1)} millioner` : forhold > 0 ? `1 : ${sep(forhold)}` : "";
+  const personer = maaltW > 0 ? Math.round(aiWh / (maaltW * 8)) : 0;
 
+  const heroTall = (tekst, farge, str = 84) => `<div class="mono disp${nytt(tekst, tekst)}" style="font-size:${str}px;font-weight:500;line-height:0.95;color:${farge};letter-spacing:-0.02em">${tekst}</div>`;
+  const pil = `<div style="font-size:44px;color:#3d3d3d;align-self:center;padding:0 6px">→</div>`;
 
   document.getElementById("rot").innerHTML = `
   <div class="kol" style="gap:9px;align-items:center;flex-shrink:0">
@@ -273,168 +145,84 @@ function tegn() {
     <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Hvor lenge må du sveive for ett spørsmål?</div>
   </div>
 
-  ${!ingenSveiv && maalWh > 0 && maaltW > 0 && maaltW < 0.1 ? `
-  <div style="display:flex;align-items:center;gap:26px;padding:14px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0">
-    <span class="mono disp" style="font-size:30px;font-weight:500;color:#4ade80;flex-shrink:0">${komma(maaltW * 1000, 0)} mW</span>
-    <span style="font-size:20px;color:#ededed;line-height:1.4">Så mye strøm lager sveiva, målt. Ett spørsmål koster ${komma(maalWh, 1)} Wh — det er <span style="color:#fbbf24">${komma(maalWh / maaltW / 24, 0)} døgn</span> på sveiva. Kroppene deres har brukt <span style="color:#fbbf24">${komma(kroppKcal, kroppKcal < 10 ? 1 : 0)} kcal</span> på det så langt.</span>
-  </div>` : ""}
-  <div class="kol" style="gap:8px;padding:14px 36px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0;display:${ingenSveiv || maalWh === 0 || (maaltW > 0 && maaltW < 0.1) ? "none" : "flex"}">
-    <div style="display:flex;justify-content:space-between;align-items:baseline">
-      <span style="font-size:22px;color:#ededed">Neste mål — strøm nok til ett spørsmål${spmSveivet > 0 ? ` <span style="color:#4ade80">(${spmSveivet} sveivet inn så langt)</span>` : ""}</span>
-      <span class="mono disp${nytt("iRunden", Math.round(iRunden * 100))}" style="font-size:30px;font-weight:500;color:#4ade80">${komma(iRunden, 2)} <span style="font-size:20px;color:#8a8a8a">/ ${komma(maalWh, 1)} Wh</span></span>
+  <!-- Svaret, lest som en setning fra venstre mot hoeyre -->
+  <div style="display:flex;align-items:stretch;gap:18px;padding:30px 40px;background:#111;border:1px solid #282828;border-radius:16px;flex-shrink:0">
+    <div class="kol" style="gap:10px;flex:1;min-width:0">
+      ${ingenSveiv ? heroTall("—", "#767676") : heroTall(tidTekst(sveivS), "#4ade80")}
+      <div style="font-size:18px;color:#ededed">${ingenSveiv ? "ingen har sveivet ennå i dag" : "har dere sveivet i dag"}</div>
+      <div style="font-size:14px;color:#8a8a8a">${ingenSveiv ? "ta i, så begynner regnestykket" : `målt: ${whTekst(wh)} strøm, ${wattTekst(maaltW)} i snitt`}</div>
     </div>
-    <div style="height:30px;background:#1c1c1c;border-radius:10px;overflow:hidden">
-      <div style="width:${andel}%;height:100%;background:#4ade80;border-radius:10px" class="fyll"></div>
+    ${pil}
+    <div class="kol" style="gap:10px;flex:1;min-width:0">
+      ${spmS > 0 ? heroTall(tidTekst(spmS), "#f97316") : heroTall(spmSnittWh > 0 ? whTekst(spmSnittWh) : "—", "#f97316", 64)}
+      <div style="font-size:18px;color:#ededed">for ett spørsmål</div>
+      <div style="font-size:14px;color:#8a8a8a">${spmSnittWh > 0 ? `${whTekst(spmSnittWh)} i snitt i dag, lesing og svar` : "regnes når noen har spurt"}${spmS > 0 ? "" : " — i sveivetid når noen sveiver"}</div>
     </div>
-    <div style="display:flex;justify-content:space-between">
-      <span style="font-size:17px;color:#9a9a9a">Dere mangler ${komma(mangler, 2)} Wh — snittet for ett spørsmål i dag</span>
-      <span style="font-size:17px;color:#9a9a9a">omtrent ${sek > 172800 ? komma(sek / 86400, 0) + " døgn" : sek > 7200 ? komma(sek / 3600, 1) + " timer" : sek > 90 ? komma(sek / 60, 0) + " minutter" : sek + " sekunder"} til på sveiva${maaltW > 0 ? ` (målt ${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"})` : ", ved 40 W antatt"}</span>
+    ${pil}
+    <div class="kol" style="gap:10px;flex:1;min-width:0">
+      ${dagS > 0 ? heroTall(tidTekst(dagS), "#c2410c") : heroTall(aiWh > 0 ? whTekst(aiWh) : "—", "#c2410c", 64)}
+      <div style="font-size:18px;color:#ededed">for alt AI-en har brukt i dag</div>
+      <div style="font-size:14px;color:#8a8a8a">${aiWh > 0 ? `${whTekst(aiWh)}, begge stasjonene` : "ingenting ennå"}${dagS > 0 ? "" : " — i sveivetid når noen sveiver"}</div>
     </div>
+  </div>
+
+  <!-- Maalestokken: lengder alle kjenner paa kroppen -->
+  <div style="display:${wh > 0 && spmSnittWh > 0 ? "flex" : "none"};align-items:center;gap:22px;padding:18px 40px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #4ade80;border-radius:12px;flex-shrink:0">
+    <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 0 6px #14281a"></div>
+    <div style="font-size:22px;color:#ededed;line-height:1.45">Hvis det dere har sveivet var <b>én millimeter</b>, ville ett spørsmål være <b style="color:#fb923c">${lengde(spmSnittWh / Math.max(wh, 1e-9))}</b>, og alt AI-en har brukt i dag <b style="color:#fb923c">${lengde(aiWh / Math.max(wh, 1e-9))}</b>.</div>
   </div>
 
   <div style="display:flex;gap:26px;flex-grow:1;min-height:0">
+    <div class="kort kol" id="naa" style="flex:1;gap:0;padding:26px 30px;border-color:#1e3a24;min-height:0"></div>
 
-    <div class="kort kol" style="flex-grow:1;gap:14px;padding:26px 30px;min-width:0">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="lbl" style="font-size:15px">${(!ingenSveiv && maaltW > 0 && aiWh > 0 && wh / aiWh < 0.01) ? "Hvor lenge på sveiva?" : "Energi gjennom dagen"}</div>
-        <div style="display:${(!ingenSveiv && maaltW > 0 && aiWh > 0 && wh / aiWh < 0.01) ? "none" : "flex"};gap:22px;align-items:center">
-          <div style="display:flex;align-items:center;gap:9px">
-            <div style="width:13px;height:13px;border-radius:3px;background:#4ade80"></div>
-            <span style="font-size:16px;color:#cfcfcf">sveivet inn</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:9px">
-            <div style="width:13px;height:13px;border-radius:3px;background:#f97316"></div>
-            <span style="font-size:16px;color:#cfcfcf">ikke dekket</span>
-          </div>
-        </div>
-      </div>
-      <div id="grafboks" style="flex-grow:1;min-height:0"></div>
-      <div id="graftekst" style="font-size:15px;color:#8a8a8a;line-height:1.5;margin-top:-4px">
-        Hele høyden er strømmen spørsmålene har brukt. Det grønne er det rommet
-        har laget selv — resten er kjøpt.${FELLES ? " Kurven er den felles potten — begge stasjonene." : ""}
-      </div>
-      <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
-        <div class="stat">
-          <div class="mono disp statTall${nytt("sveivWh", Math.round(wh * 100))}" style="color:#4ade80">${whTekst(wh).split(" ")[0]}<span style="font-size:20px;color:#9a9a9a"> ${whTekst(wh).split(" ")[1]}</span></div>
-          <div class="statNavn">sveivet inn</div>
-        </div>
-        <div class="stat">
-          <div class="mono disp statTall" style="color:#fbbf24">${ingenSveiv ? "—" : komma(kroppKcal, kroppKcal < 10 ? 1 : 0)}<span style="font-size:20px;color:#9a9a9a"> kcal</span></div>
-          <div class="statNavn">kroppene deres brukte, anslag</div>
-          <div style="font-size:12.5px;color:#767676;margin-top:2px">${ingenSveiv ? `${komma(KROPP_W, 0)} W under sveiving, ikke målt` : `≈ ${komma(kroppWh, 1)} Wh for ${whTekst(wh)} strøm`}</div>
-        </div>
-        <div class="stat">
-          <div class="mono disp statTall${nytt("aiWh", Math.round(aiWh * 10))}" style="color:#fb923c">${komma(aiWh)}<span style="font-size:20px;color:#9a9a9a"> Wh</span></div>
-          <div class="statNavn">brukt${FELLES ? " — begge stasjonene" : ", laveste anslag"}</div>
-        </div>
-        <div class="stat">
-          <div class="mono disp statTall" style="color:#fb923c">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
-          <div class="statNavn">vann til kjøling</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="kort kol" style="width:540px;flex-shrink:0;gap:12px;padding:20px 30px;border-color:#3a2412;min-height:0">
-      <div class="lbl" style="color:#f97316;font-size:15px">Energi brukt og laget — hele rommet</div>
+    <div class="kort kol" style="width:640px;flex-shrink:0;gap:12px;padding:22px 30px;border-color:#3a2412;min-height:0">
+      <div class="lbl" style="color:#f97316;font-size:15px">Energi i dag — hele rommet</div>
       <div style="display:flex;align-items:baseline;gap:12px">
-        <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:52px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
-        <div style="font-size:20px;color:#9a9a9a">Wh</div>
+        <div class="mono disp${nytt("aiWh", Math.round(aiWh * 100))}" style="font-size:48px;font-weight:500;line-height:0.92;color:#f97316">${komma(aiWh, 1)}</div>
+        <div style="font-size:20px;color:#9a9a9a">Wh brukt</div>
       </div>
-
-      <!-- Stolpene under er PERSONER, ikke kategorier. Halvor var oransje, som
-           er diagrammets «ikke dekket» — to helt ulike ting i samme farge rett
-           ved siden av hverandre. Indigo og lilla holder dem adskilt fra
-           diagrammets oransje og grønne. -->
-      <div class="kol" style="gap:10px;margin-top:0">
-        <div class="kol" style="gap:8px">
+      <div class="kol" style="gap:9px">
+        <div class="kol" style="gap:6px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:20px;color:#ededed">Halvor <span style="font-size:15px;color:#8a8a8a">— nettsidelesing</span></span>
-            <span class="mono" style="font-size:20px;color:#818cf8">${komma(vaarWh, 2)} Wh</span>
+            <span style="font-size:18px;color:#ededed">Halvor <span style="font-size:14px;color:#8a8a8a">— nettsidelesing</span></span>
+            <span class="mono" style="font-size:18px;color:#818cf8">${komma(vaarWh, 1)} Wh</span>
           </div>
-          <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
-            <div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#4f46e5"></div>
-          </div>
+          <div style="height:22px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:${(vaarWh / maksWh) * 100}%;height:100%;background:#4f46e5"></div></div>
         </div>
-        <div class="kol" style="gap:8px">
+        <div class="kol" style="gap:6px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:20px;color:#ededed">Gjermund <span style="font-size:15px;color:#8a8a8a">— chatbot</span></span>
-            <span class="mono" style="font-size:20px;color:#a78bfa">${komma(hansWh, 2)} Wh</span>
+            <span style="font-size:18px;color:#ededed">Gjermund <span style="font-size:14px;color:#8a8a8a">— chatbot</span></span>
+            <span class="mono" style="font-size:18px;color:#a78bfa">${komma(hansWh, 1)} Wh</span>
           </div>
-          <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
-            <div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div>
-          </div>
-        </div>
-
-        <!-- Sveiva er den eneste MÅLTE størrelsen i panelet, og den peker
-             motsatt vei av de to over: laget, ikke brukt. Skillelinja og den
-             grønne fargen holder de to regnskapene fra hverandre. -->
-        <div class="kol" style="gap:8px;padding-top:14px;border-top:1px solid #282828">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:20px;color:#ededed">Sveiva <span style="font-size:15px;color:#4ade80">— laget av rommet</span></span>
-            <span class="mono" style="font-size:20px;color:#4ade80">${ingenSveiv ? "ikke koblet til" : whTekst(wh)}</span>
-          </div>
-          <div style="height:24px;background:#1c1c1c;border-radius:6px;overflow:hidden">
-            <div style="width:${ingenSveiv ? 0 : Math.max(0.4, (wh / maksWh) * 100)}%;height:100%;background:#4ade80"></div>
-          </div>
+          <div style="height:22px;background:#1c1c1c;border-radius:6px;overflow:hidden"><div style="width:${(hansWh / maksWh) * 100}%;height:100%;background:#a78bfa"></div></div>
         </div>
       </div>
-
-      <div style="font-size:14px;color:#767676;line-height:1.45;margin-top:2px">
-        Tokentallene er målt. Strømmen er regnet ut — ingen leverandør oppgir hvor
-        mye ett spørsmål bruker. Begge stasjonene regner både det å lese og det å
-        svare${vaarLesing > 0 ? `; hos Halvor går ${komma((vaarLesing / Math.max(vaarWh, 0.001)) * 100, 0)} % av strømmen til lesingen alene` : ""}.
-        Sveiva er derimot ekte målt: volt ganger ampere ganger tid.
-      </div>
-
-      <div style="display:flex;margin-top:auto;padding-top:18px;border-top:1px solid #282828">
-        <div class="stat">
-          <div class="mono disp statTall">${komma(aiWh / MOBIL_WH, 1)}</div>
-          <div class="statNavn">mobilladinger til sammen</div>
-          <div style="font-size:12.5px;color:#767676;margin-top:2px">${komma(MOBIL_WH, 0)} Wh per full lading</div>
+      <div class="kol" style="gap:7px;padding-top:12px;border-top:1px solid #282828">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:18px;color:#ededed">Sveiva <span style="font-size:14px;color:#4ade80">— laget av rommet, målt</span></span>
+          <span class="mono" style="font-size:18px;color:#4ade80">${ingenSveiv ? "ikke ennå" : whTekst(wh)}</span>
         </div>
-        <div class="stat">
-          <div class="mono disp statTall">${komma(vannL * 1000, 0)}<span style="font-size:20px;color:#9a9a9a"> mL</span></div>
-          <div class="statNavn">vann til sammen, ${komma((vannL * 1000) / GLASS_ML, 1)} glass</div>
+        ${forhold > 0 ? `<div style="font-size:15px;color:#8a8a8a">Forholdet mellom laget og brukt: <span class="mono" style="color:#ededed">${forholdTekst}</span></div>` : ""}
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px">
+          <span style="font-size:18px;color:#ededed">Kroppene deres <span style="font-size:14px;color:#fbbf24">— anslag</span></span>
+          <span class="mono" style="font-size:18px;color:#fbbf24">${ingenSveiv ? "—" : komma(kroppKcal, kroppKcal < 10 ? 1 : 0) + " kcal"}</span>
         </div>
+        <div style="font-size:14px;color:#8a8a8a">${ingenSveiv ? `${komma(KROPP_W, 0)} W ved lett armsveiving, regnet fra tid` : `≈ ${komma(kroppWh, 1)} Wh kroppsenergi for ${whTekst(wh)} strøm`}</div>
       </div>
+      <div style="font-size:13px;color:#767676;line-height:1.45;margin-top:auto">Tokens er målt. Strømmen er regnet ut — ingen leverandør oppgir hvor mye ett spørsmål bruker. Halvor: EcoLogits for svaret pluss et FLOP-basert leseestimat${vaarLesing > 0 ? ` (lesingen er ${komma((vaarLesing / Math.max(vaarWh, 0.001)) * 100, 0)} % av hans andel)` : ""}. Gjermund: EcoLogits på gpt-5. ${komma(vannL * 1000, 0)} mL vann til kjøling, ${komma(aiWh / MOBIL_WH, 1)} mobilladinger.</div>
     </div>
   </div>
 
-  <div style="display:flex;align-items:center;gap:30px;padding:20px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
-    <div class="mono disp" style="font-size:48px;font-weight:500;line-height:1;color:${ingenSveiv ? "#767676" : "#fbbf24"};flex-shrink:0">${ingenSveiv ? "—" : (dekning > 0 && dekning < 1 ? komma(dekning) : Math.round(dekning)) + " %"}</div>
-    <div class="kol" style="gap:5px;flex-grow:1">
-      <div style="font-size:20px;color:#ededed;line-height:1.45">${
-        ingenSveiv
-          ? "Sveiva er ikke koblet til enda. Tokentallene er ekte målinger; det grønne kommer så snart sveiva er på plass."
-        : dekning >= 100
-          ? "Dere har sveivet inn mer enn spørsmålene brukte. Det har ingen klart før."
-          : (maaltW > 0 && maaltW < 0.1)
-          ? `Alt AI-en har brukt i dag, ${komma(aiWh, 1)} Wh, er ${(() => { const d = aiWh / maaltW / 24; return d > 730 ? komma(d / 365, 1) + " år" : d > 60 ? komma(d / 30, 0) + " måneder" : komma(d, 0) + " døgn"; })()} på denne sveiva.`
-        : "Hele dagens sveiving dekker " + (dekning < 20 ? "under en femtedel" : dekning < 34 ? "under en tredjedel" : dekning < 51 ? "under halvparten" : "over halvparten") + " av strømmen spørsmålene brukte."
-      }</div>
-      <div style="font-size:15px;color:#8a8a8a;line-height:1.5">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og oppgir alltid det laveste anslaget. Det er det svakeste tallet på skjermen, og det står her for å kunne bestrides. Gult er et anslag for engasjement: kroppen bruker ~${komma(KROPP_W, 0)} W ved lett armsveiving (3 MET), regnet fra sveivetiden — det går aldri inn i det grønne.</div>
+  <div style="display:flex;align-items:center;gap:30px;padding:18px 32px;background:#0e0e0e;border:1px solid #282828;border-left:5px solid #fbbf24;border-radius:12px;flex-shrink:0">
+    <div class="mono disp" style="font-size:34px;font-weight:500;line-height:1;color:${ingenSveiv ? "#767676" : "#fbbf24"};flex-shrink:0;white-space:nowrap">${ingenSveiv ? "—" : forholdTekst}</div>
+    <div class="kol" style="gap:4px;flex-grow:1">
+      <div style="font-size:19px;color:#ededed;line-height:1.4">${ingenSveiv
+        ? "Sveiva har ikke vært i bruk ennå i dag. Tokentallene er ekte målinger; sveivetallene kommer så snart noen tar i."
+        : `Så mye mer strøm har AI-en brukt enn rommet har laget. På slike sveiver måtte ${sep(personer)} personer sveivet åtte timer hver for å dekke dagen.`}</div>
+      <div style="font-size:14px;color:#8a8a8a;line-height:1.45">Grønt er målt: volt ganger ampere ganger tid, fra sveiva. Oransje er regnet ut, ikke målt — ingen leverandør oppgir hvor mye strøm ett spørsmål bruker; vi regner både lesing og svar og oppgir alltid det laveste anslaget. Gult er et anslag for engasjement: ~${komma(KROPP_W, 0)} W ved lett armsveiving (3 MET), fra sveivetiden — det går aldri inn i det grønne.</div>
     </div>
   </div>`;
-
-  /* Diagrammet hadde fast høyde i et kort som vokser, så differansen ble død
-   * luft mellom grafen og talla. Brettet er en fast 1920x1080-scene, så den
-   * ledige høyden er stabil: vi måler den én gang etter at layouten har satt
-   * seg, og tegner grafen i akkurat den høyden. */
-  const boks = document.getElementById("grafboks");
-  if (boks) {
-    const h = Math.round(boks.clientHeight);
-    // Under 1 % dekning og med maalt sveiveeffekt: arealet ville vaert helt
-    // oransje. Tidsstigen viser forholdet i stedet.
-    const stige = !ingenSveiv && maaltW > 0 && aiWh > 0 && wh / aiWh < 0.01;
-    boks.innerHTML = stige
-      ? tidsstige(1166, h > 80 ? h : 300, sveivS, maalWh > 0 ? maalWh * 3600 / maaltW : 0, aiWh * 3600 / maaltW, maaltW)
-      : arealdiagram(1166, h > 80 ? h : 300);
-    const bildetekst = document.getElementById("graftekst");
-    if (bildetekst && stige) {
-      const personer = Math.round(aiWh / (maaltW * 8));
-      bildetekst.textContent = `Grønt er det dere faktisk har sveivet. For å lage dagens AI-strøm på slike sveiver måtte ${sep(personer)} personer sveivet i åtte timer hver. Målt effekt på sveiva ganger tid — ingenting anslått.`;
-    }
-  }
+  tegnPuls();
 }
 
 function skaler() {
