@@ -6,5 +6,8 @@
  * Edge-funksjonen. */
 const CFG = {
   SUPABASE_URL: "https://fguthicnuasibplfyfrr.supabase.co",
+  /* Rebusen paa Sundvollen: hver stasjon deler ut sin egen bokstav naar
+     studenten er ferdig. Halvors stasjon gir "O". */
+  REBUS_BOKSTAV: "O",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZndXRoaWNudWFzaWJwbGZ5ZnJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5MTIyODYsImV4cCI6MjEwMzQ4ODI4Nn0.X_1fon06fY67MUVcwBOLbuyBNoNMzyEjVRHm6RrMZlc",
 };

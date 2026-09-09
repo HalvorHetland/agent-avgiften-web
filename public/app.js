@@ -778,7 +778,7 @@ function s7() {
 
     <div class="kol" style="gap:11px;margin-top:auto">
       <div class="btn" data-handling="påNytt"><span class="disp" style="font-size:19px;font-weight:700;color:#fff">Prøv en annen side</span></div>
-      <div class="btn-ghost" data-handling="avslutt"><span style="font-size:17px;color:#9a9a9a">Jeg er ferdig</span></div>
+      <div class="btn-ghost" data-handling="avslutt" style="border-color:#f97316"><span style="font-size:17px;color:#fb923c">Jeg er ferdig — hent bokstaven</span></div>
     </div>
   </div>`;
 }
@@ -786,15 +786,21 @@ function s7() {
 /* Sluttbildet. Med vilje stille: ingen knapper som lokker videre, bare en
  * vei tilbake hvis noen ombestemmer seg og gir telefonen til en venn. */
 function ferdig() {
+  /* Bokstaven staar oeverst og stoerst: den er grunnen til at studenten gikk
+   * hele veien gjennom stasjonen. Skjermen blir staaende mens de skriver den
+   * ned — ingen nedtelling, ingen knapp som tar den bort. Sjekkmerket er ute;
+   * to store symboler over hverandre konkurrerer, og bokstaven skal vinne. */
   return `
-  <div class="kol" style="gap:22px;height:100%;justify-content:center;align-items:center;text-align:center">
-    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 6 9 17l-5-5"/>
-    </svg>
-    <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15">Takk for at du bidro</div>
-    <div style="font-size:15.5px;color:#9a9a9a;line-height:1.55;max-width:280px">Målingene dine er en del av datagrunnlaget i masteroppgaven om hva det koster en AI å lese nettsider.</div>
-    <div style="font-size:14px;color:#5a5a5a;line-height:1.5;max-width:280px">Ta gjerne en titt på storskjermen — tallene dine er allerede med der.</div>
-    <div class="btn-ghost" data-handling="påNytt" style="margin-top:14px;padding:0 26px"><span style="font-size:16px;color:#8a8a8a">Start på nytt</span></div>
+  <div class="kol" style="gap:18px;height:100%;justify-content:center;align-items:center;text-align:center">
+    <div class="bokstav-kort"><span>${esc(CFG.REBUS_BOKSTAV)}</span></div>
+    <div class="disp" style="font-size:25px;font-weight:700;color:#fb923c;line-height:1.2">Din bokstav til rebusen!</div>
+    <div style="font-size:15px;color:#9a9a9a;line-height:1.5;max-width:270px">Skriv den ned før du går videre til neste stasjon.</div>
+
+    <div style="width:52px;height:1px;background:#282828;margin:2px 0"></div>
+
+    <div style="font-size:15px;color:#9a9a9a;line-height:1.55;max-width:280px">Takk — målingene dine er en del av datagrunnlaget i masteroppgaven om hva det koster en AI å lese nettsider.</div>
+    <div style="font-size:14px;color:#767676;line-height:1.5;max-width:280px">Tallene dine er allerede på storskjermen.</div>
+    <div class="btn-ghost" data-handling="påNytt" style="margin-top:8px;padding:0 26px"><span style="font-size:16px;color:#8a8a8a">Start på nytt</span></div>
   </div>`;
 }
 

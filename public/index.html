@@ -64,6 +64,28 @@
   /* Meldingene kommer inn etter hverandre, som i en samtale. */
   .inn{animation:inn .28s ease-out both}
   @keyframes inn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* Rebusbokstaven. Formen er laant fra rebusens egne kort — stort kvadrat,
+     tydelig ramme — men fargene er flytens, ikke rebusens: et kremhvitt kort
+     ville sett ut som en annen app midt i en moerk flyt. */
+  .bokstav-kort{
+    width:132px;height:132px;border-radius:26px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    background:#1d1309;border:2px solid #f97316;
+    box-shadow:0 0 0 8px rgba(249,115,22,.07), 0 14px 40px -12px rgba(249,115,22,.45);
+    animation:bokstav-inn .55s cubic-bezier(.2,.9,.25,1.06) both;
+  }
+  .bokstav-kort span{
+    font-size:78px;font-weight:700;line-height:1;color:#fb923c;
+    font-family:"Space Grotesk","IBM Plex Sans",system-ui,sans-serif;
+  }
+  @keyframes bokstav-inn{
+    from{opacity:0;transform:scale(.72) rotate(-7deg)}
+    to{opacity:1;transform:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .bokstav-kort{animation:none}
+  }
   @media (prefers-reduced-motion:reduce){.inn{animation:none}}
 
   /* Sjekklista på lastesiden. Hvert steg fylles inn når det faktisk er målt. */
