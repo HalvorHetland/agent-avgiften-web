@@ -301,6 +301,10 @@ function tegn() {
        * feilskjermene, og eneste vei ut var å laste siden på nytt. */
       S.feil = null;
       S.steg = Number(el.dataset.gaa);
+      /* Tilbake til steg 1 = velge paa nytt. Uten dette staar sida og
+       * oppgaven fortsatt valgt fra forrige forsoek, og «proev en annen
+       * side» ser ut som om den ikke gjorde noe. */
+      if (S.steg === 1) { S.sideValgt = false; S.aktivitet = null; S.oppgave = ""; S.malt = null; }
       tegn();
       if (S.steg === 5 || S.steg === 6) hentTotaler();
     };
