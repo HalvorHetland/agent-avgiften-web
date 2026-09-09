@@ -97,6 +97,18 @@ function tegnPuls() {
   const el = document.getElementById("naa");
   if (!el) return;
   const fersk = PULS && Number(PULS.alder_s) < 6;
+  /* Feil vei gir like mye spenning som riktig vei, men ingen brukbar energi.
+   * Uten den beskjeden staar den som sveiver og ser et tall som ikke roerer
+   * seg, uten aa vite hvorfor. */
+  const feilVei = fersk && Number(PULS.retning) === -1;
+  if (feilVei) {
+    el.innerHTML = `
+    <div class="kol" style="gap:16px;justify-content:center;flex-grow:1">
+      <div class="disp" style="font-size:56px;font-weight:700;color:#fbbf24;line-height:1.1">Sveiv andre veien</div>
+      <div style="font-size:22px;color:#cfcfcf;line-height:1.5;max-width:560px">Sveiva lager strøm bare én vei rundt. Nå går den motsatt, og ingenting blir målt.</div>
+    </div>`;
+    return;
+  }
   const w = fersk ? Number(PULS.watt) : 0, j = fersk ? Number(PULS.joule) : 0;
   /* Tallet skal fylle kortet: det er den eneste tilbakemeldingen den som
    * sveiver faar, og kortet staar tomt ellers. Stoerrelsen krymper naar det
