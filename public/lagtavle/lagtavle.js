@@ -126,7 +126,12 @@ function tegnPuls() {
     </div>` : `
     <div class="kol" style="gap:14px;justify-content:center;flex-grow:1">
       <div class="disp" style="font-size:44px;font-weight:700;color:#767676;line-height:1.1">Sveiva står stille</div>
-      <div style="font-size:20px;color:#9a9a9a;line-height:1.5;max-width:520px">Ta i, så våkner tallet her i det du begynner. Hver økt måles: volt ganger ampere ganger tid — og legges til regnestykket øverst.</div>
+      <div style="font-size:20px;color:#9a9a9a;line-height:1.5;max-width:540px">Ta i, så våkner tallet her i det du begynner.</div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px;max-width:540px">
+        <div style="font-size:20px;color:#fbbf24;line-height:1.45">↻</div>
+        <div style="font-size:18px;color:#cfcfcf;line-height:1.45">Skjer det ingenting mens du sveiver, går den feil vei. Sveiva lager strøm bare én vei rundt — følg pila.</div>
+      </div>
+      <div style="font-size:16px;color:#8a8a8a;line-height:1.5;max-width:540px">Hver økt måles: volt ganger ampere ganger tid, og legges til regnestykket øverst.</div>
     </div>`;
 }
 
