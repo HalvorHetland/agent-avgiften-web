@@ -160,8 +160,8 @@ function tegn() {
     ${pil}
     <div class="kol" style="gap:10px;flex:1;min-width:0">
       ${spmS > 0 ? heroTall(tidTekst(spmS), "#f97316") : heroTall(spmSnittWh > 0 ? whTekst(spmSnittWh) : "—", "#f97316", 64)}
-      <div style="font-size:18px;color:#ededed">for ett spørsmål</div>
-      <div style="font-size:14px;color:#8a8a8a">${spmSnittWh > 0 ? `${whTekst(spmSnittWh)} i snitt i dag, lesing og svar` : "regnes når noen har spurt"}${spmS > 0 ? "" : " — i sveivetid når noen sveiver"}</div>
+      <div style="font-size:18px;color:#ededed">for ett spørsmål <span style="font-size:14px;color:#8a8a8a">hos Halvor</span></div>
+      <div style="font-size:14px;color:#8a8a8a">${spmSnittWh > 0 ? `${whTekst(spmSnittWh)} i snitt på nettsidelesing i dag` : "regnes når noen har spurt"}${spmS > 0 ? "" : " — i sveivetid når noen sveiver"}</div>
     </div>
     ${pil}
     <div class="kol" style="gap:10px;flex:1;min-width:0">
