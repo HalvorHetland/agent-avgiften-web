@@ -195,9 +195,113 @@ function stolpe(navn, n, maks, farge, hale = "") {
   </div>`;
 }
 
+/** Fyller hullene mellom kvarterbolkene. Uten dette tegnes en stille time
+ *  som om den ikke fantes, og grafen viser sammenhengende aktivitet der det
+ *  faktisk sto stille. */
+function heleSerien(forloep, naa) {
+  if (!forloep || !forloep.length) return [];
+  const kvarter = 15 * 60 * 1000;
+  const start = new Date(forloep[0].bolk).getTime();
+  const slutt = Math.max(new Date(forloep[forloep.length - 1].bolk).getTime(),
+                         Math.floor(new Date(naa).getTime() / kvarter) * kvarter);
+  const kjent = Object.fromEntries(forloep.map((b) => [new Date(b.bolk).getTime(), b]));
+  const ut = [];
+  for (let t = start; t <= slutt; t += kvarter) {
+    const b = kjent[t];
+    ut.push({
+      t,
+      spoersmaal: Number(b?.spoersmaal || 0),
+      kall: Number(b?.kall || 0),
+      wh: Number(b?.wh || 0),
+      sveiv_oekter: Number(b?.sveiv_oekter || 0),
+      sveiv_j: Number(b?.sveiv_j || 0),
+    });
+  }
+  return ut;
+}
+
+const kl = (t) => new Date(t).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+
+/** Stolper per kvarter: oransje for spoersmaal, groenn for sveiveoekter.
+ *  Samme akse, fordi begge er antall — ikke to skalaer i samme bilde. */
+function grafAktivitet(serie) {
+  if (serie.length < 2) return `<div class="fin">For lite til en graf enda. Den tegnes når det finnes to kvarter med data.</div>`;
+  const B = 640, H = 150, bunn = 22, topp = 8;
+  const maks = Math.max(1, ...serie.map((d) => Math.max(d.spoersmaal, d.sveiv_oekter)));
+  const bredde = B / serie.length;
+  const stolpe = Math.max(2, Math.min(18, bredde * 0.38));
+  const y = (v) => topp + (H - topp - bunn) * (1 - v / maks);
+
+  // Ett klokkeslett omtrent hvert femte kvarter, saa aksen ikke blir mos.
+  const steg = Math.max(1, Math.round(serie.length / 6));
+  return `<svg viewBox="0 0 ${B} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Spørsmål og sveiveøkter per kvarter">
+    ${[0, 0.5, 1].map((f) => `<line x1="0" y1="${y(maks * f)}" x2="${B}" y2="${y(maks * f)}" stroke="#1c1c1c" stroke-width="1"/>`).join("")}
+    <text x="2" y="${y(maks) - 2}" fill="#6b6b6b" font-size="10" font-family="IBM Plex Mono, monospace">${sep(maks)}</text>
+    ${serie.map((d, i) => {
+      const x = i * bredde + bredde / 2;
+      return `${d.spoersmaal > 0 ? `<rect x="${x - stolpe - 1}" y="${y(d.spoersmaal)}" width="${stolpe}" height="${Math.max(1, H - bunn - y(d.spoersmaal))}" fill="#f97316" rx="1.5"><title>${kl(d.t)} · ${d.spoersmaal} spørsmål</title></rect>` : ""}
+              ${d.sveiv_oekter > 0 ? `<rect x="${x + 1}" y="${y(d.sveiv_oekter)}" width="${stolpe}" height="${Math.max(1, H - bunn - y(d.sveiv_oekter))}" fill="#4ade80" rx="1.5"><title>${kl(d.t)} · ${d.sveiv_oekter} sveiveøkter</title></rect>` : ""}`;
+    }).join("")}
+    <line x1="0" y1="${H - bunn}" x2="${B}" y2="${H - bunn}" stroke="#282828" stroke-width="1"/>
+    ${serie.map((d, i) => i % steg === 0
+      ? `<text x="${i * bredde + bredde / 2}" y="${H - 7}" fill="#6b6b6b" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace">${kl(d.t)}</text>` : "").join("")}
+  </svg>`;
+}
+
+/** Wattimene som har hopet seg opp gjennom dagen. Kumulativ, fordi det er
+ *  den voksende regningen som er poenget — ikke svingningene per kvarter. */
+function grafEnergi(serie) {
+  if (serie.length < 2) return `<div class="fin">For lite til en graf enda.</div>`;
+  const B = 640, H = 150, bunn = 22, topp = 10;
+  let sum = 0;
+  const pkt = serie.map((d, i) => { sum += d.wh; return { i, t: d.t, sum }; });
+  const maks = Math.max(1e-9, sum);
+  const x = (i) => (serie.length === 1 ? 0 : (i / (serie.length - 1)) * B);
+  const y = (v) => topp + (H - topp - bunn) * (1 - v / maks);
+  const linje = pkt.map((p) => `${x(p.i).toFixed(1)},${y(p.sum).toFixed(1)}`).join(" ");
+  const steg = Math.max(1, Math.round(serie.length / 6));
+  return `<svg viewBox="0 0 ${B} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Wattimer samlet gjennom dagen">
+    <line x1="0" y1="${y(maks)}" x2="${B}" y2="${y(maks)}" stroke="#1c1c1c" stroke-width="1"/>
+    <text x="2" y="${y(maks) - 3}" fill="#6b6b6b" font-size="10" font-family="IBM Plex Mono, monospace">${wh(maks)} Wh</text>
+    <polygon points="0,${H - bunn} ${linje} ${B},${H - bunn}" fill="#f9731622"/>
+    <polyline points="${linje}" fill="none" stroke="#fb923c" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="0" y1="${H - bunn}" x2="${B}" y2="${H - bunn}" stroke="#282828" stroke-width="1"/>
+    ${serie.map((d, i) => i % steg === 0
+      ? `<text x="${Math.min(B - 16, Math.max(16, x(i)))}" y="${H - 7}" fill="#6b6b6b" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace">${kl(d.t)}</text>` : "").join("")}
+  </svg>`;
+}
+
+/** Spennet per side: laveste, snitt og hoeyeste forhold. Et snitt alene
+ *  skjuler om 206x er typisk eller ett utslag. Logaritmisk akse, fordi
+ *  sidene ligger fra rundt 40x til over 200x. */
+function grafForhold(sider) {
+  if (!sider.length) return "";
+  const maks = Math.max(...sider.map((p) => Number(p.maks_forhold)));
+  const min = Math.min(...sider.map((p) => Number(p.min_forhold)));
+  const lo = Math.log10(Math.max(1, min * 0.9)), hi = Math.log10(Math.max(2, maks * 1.1));
+  const pos = (v) => ((Math.log10(Math.max(1, v)) - lo) / (hi - lo || 1)) * 100;
+  return `<div class="kol" style="gap:13px;margin-bottom:18px">
+    ${sider.map((p) => {
+      const a = pos(Number(p.min_forhold)), b = pos(Number(p.maks_forhold)), m = pos(Number(p.snitt_forhold));
+      return `<div class="kol" style="gap:5px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:13.5px;color:#cfcfcf">${esc(p.side)}</span>
+          <span class="mono" style="font-size:13.5px;color:#fb923c">${komma(p.snitt_forhold, 1)}×</span>
+        </div>
+        <div style="position:relative;height:12px;background:#1c1c1c;border-radius:6px">
+          <div style="position:absolute;left:${a}%;width:${Math.max(1.5, b - a)}%;top:0;bottom:0;background:#3a2412;border-radius:6px"></div>
+          <div style="position:absolute;left:calc(${m}% - 3px);top:-2px;width:6px;height:16px;background:#fb923c;border-radius:3px"></div>
+        </div>
+      </div>`;
+    }).join("")}
+    <div class="fin">Bredden er laveste til høyeste måling for den sida, streken er snittet. Logaritmisk akse.</div>
+  </div>`;
+}
+
 function tegn() {
   const d = D, t = d.totaler || {}, s = d.sveiv || {};
   const aiWh = Number(t.dekoding_wh || 0) + Number(t.lesing_wh || 0);
+  const serie = heleSerien(d.forloep, d.naa);
   const sisteAi = siden(d.siste.ai_run, d.naa);
   const sisteSveiv = siden(d.siste.sveiv, d.naa);
 
@@ -228,6 +332,24 @@ function tegn() {
       <div class="ruteNavn">sveiveøkter</div>
       <div class="fin">${sisteSveiv ? `siste ${sisteSveiv}` : "brua har ikke sendt noe"}</div>
     </div>
+  </div>`;
+
+  const aktivitetKort = `
+  <div class="kort">
+    <div class="korttittel">
+      <div class="lbl">Når skjedde det</div>
+      <div class="fin"><span style="color:#f97316">spørsmål</span> · <span style="color:#4ade80">sveiveøkter</span> · per kvarter</div>
+    </div>
+    ${grafAktivitet(serie)}
+  </div>`;
+
+  const energiGrafKort = `
+  <div class="kort">
+    <div class="korttittel">
+      <div class="lbl">Strømmen som har hopet seg opp</div>
+      <div class="fin">samlet, min stasjon</div>
+    </div>
+    ${grafEnergi(serie)}
   </div>`;
 
   // ── Trakten. Hvor mange naadde hvert steg, og hvor faller de fra.
@@ -320,6 +442,7 @@ function tegn() {
   <div class="kort">
     <div class="korttittel"><div class="lbl">Per side og oppgave</div>
       <div class="fin">forholdet er alt AI-en leste, delt på selve teksten</div></div>
+    ${grafForhold(sider)}
     ${sider.length ? `<table>
       <tr><th>Side</th><th>Oppgave</th><th class="h">N</th><th class="h">Snitt</th><th class="h">Fra–til</th><th class="h">Tokens inn</th></tr>
       ${sider.map((p) => `<tr>
@@ -370,6 +493,7 @@ function tegn() {
 
   P("dash").innerHTML = `
     ${stripe}
+    <div class="rutenett" style="grid-template-columns:repeat(auto-fit,minmax(420px,1fr))">${aktivitetKort}${energiGrafKort}</div>
     <div class="rutenett">${traktKort}${energiKort}${sveivKort}</div>
     <div class="rutenett">${holdKort}${fritekstKort}</div>
     ${siderKort}
