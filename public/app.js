@@ -304,6 +304,18 @@ function tegn() {
    * eget svar og neste spørsmål havnet under folden. Chat ruller til nyeste. */
   const samtale = document.getElementById("samtale");
   if (samtale) samtale.scrollTop = samtale.scrollHeight;
+  /* Hintet skal bare staa saa lenge det faktisk ligger noe under folden.
+   * Passer alt paa skjermen, er det en loegn og skjules med en gang. */
+  const rull = document.getElementById("rull"), hint = document.getElementById("rull-hint");
+  if (rull && hint) {
+    const sjekk = () => {
+      const igjen = rull.scrollHeight - rull.scrollTop - rull.clientHeight;
+      hint.hidden = igjen < 24;
+    };
+    rull.addEventListener("scroll", sjekk, { passive: true });
+    /* scrollHeight er ikke paalitelig foer nettleseren har lagt ut sida. */
+    requestAnimationFrame(sjekk); setTimeout(sjekk, 120);
+  }
   app().querySelectorAll("[data-gaa]").forEach((el) => {
     el.onclick = () => {
       /* Å navigere til et steg betyr å forlate feiltilstanden. Uten dette
@@ -573,7 +585,8 @@ function s3() {
   const meter = Math.round(forhold);
   return `
   <div class="kol" style="gap:14px;height:100%">
-   <div class="kol" style="gap:16px;overflow-y:auto;flex:1;min-height:0">
+   <div style="position:relative;flex:1;min-height:0;display:flex">
+   <div id="rull" class="kol" style="gap:16px;overflow-y:auto;flex:1;min-height:0;padding-bottom:30px">
     <div class="kol" style="gap:7px">
       <div class="lbl" style="color:#f97316">Steg 2 av 3</div>
       <div class="disp" style="font-size:27px;font-weight:700;line-height:1.15">To svar, to helt ulike regninger</div>
@@ -619,6 +632,8 @@ function s3() {
     ${raa.truncated ? `<div class="kol" style="gap:6px;padding:14px 16px;background:#0e0e0e;border:1px solid #282828;border-left:4px solid #fbbf24;border-radius:10px">
       <div style="font-size:14px;color:#ededed;line-height:1.45">Siden var for stor til å sendes hel. Vi sendte bare de første <span class="mono">${tall(raa.input_tokens)}</span> tekstbitene.</div>
       <div class="fin">Det ekte tallet er altså høyere enn det som står over.</div></div>` : ""}
+   </div>
+   <div id="rull-hint" class="rull-hint">Bla ned — det er mer <span class="rull-pil">↓</span></div>
    </div>
     <div class="btn" data-gaa="4" style="flex-shrink:0">
       <span class="disp" style="font-size:20px;font-weight:700;color:#fff">Videre</span>

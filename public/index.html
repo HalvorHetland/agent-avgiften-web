@@ -47,6 +47,18 @@
   /* Valgt aktivitet. Oransje som brikkene, så «valgt» ser likt ut i hele flyten. */
   .svar-on{border-color:#f97316;background:#1d1309;color:#fb923c}
   .btn-av{background:#1c1c1c;cursor:default}
+  /* Steg 2 er lengre enn skjermen, og «Videre» staar fast nederst. Uten et
+   * tegn paa at det ligger mer under, ser skjermen ferdig ut og de fleste
+   * trykker videre uten aa se tallene. Toningen viser at innholdet fortsetter;
+   * pila sier hva de skal gjoere. Begge forsvinner naar de har naadd bunnen. */
+  .rull-hint{position:absolute;left:0;right:0;bottom:0;pointer-events:none;
+    padding:56px 0 10px;text-align:center;font-size:13px;color:#fb923c;
+    background:linear-gradient(to bottom,rgba(10,10,10,0) 0%,rgba(10,10,10,.82) 38%,#0a0a0a 68%);
+    transition:opacity .22s ease}
+  .rull-hint[hidden]{display:block !important;opacity:0}
+  .rull-pil{display:inline-block;animation:rull-ned 1.6s ease-in-out infinite}
+  @keyframes rull-ned{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+  @media (prefers-reduced-motion:reduce){.rull-pil{animation:none}}
 
   /* Samtaleformen. Gjenkjennelig som en chat, men i standens eget språk —
      ikke en kopi av et bestemt produkt. Poenget er at studenten kjenner igjen
