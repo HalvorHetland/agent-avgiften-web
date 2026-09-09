@@ -211,7 +211,15 @@ function tegn() {
   const e = enheter(d);
 
   const reintBredde = d.raa > 0 ? Math.max(0.2, (d.reint / d.raa) * 100) : 0;
-  const spart = d.raa - d.reint;
+  /* Foer foerste maaling er de to store tallene korpusmedianer, ikke dagens.
+   * «Tokens spart» og forholdet ble regnet fra dem, saa de sto med tall ved
+   * siden av «0 spoersmaal stilt» og fikk skjermen til aa se ustilt ut etter
+   * en nullstilling. Antallet spart er aerlig null naar ingen har spurt.
+   * Forholdet settes ikke til 0 — «0x mer enn selve teksten» ville vaere en
+   * paastand om at AI-en ikke leser noe ekstra, altsaa det motsatte av
+   * funnet. Strek er samme skrivemaate som resten av skjermen bruker for en
+   * maaling som ikke finnes enda. */
+  const spart = d.kaldstart ? 0 : d.raa - d.reint;
 
   document.getElementById("rot").innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;gap:40px;flex-shrink:0">
@@ -236,7 +244,7 @@ function tegn() {
 
     <div class="kort kol" style="flex-grow:1;gap:18px;padding:32px;border-color:#3a2412;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="lbl" style="color:#f97316">AI-en har brukt${d.kaldstart ? " · korpus, ikke i dag" : ""}</div>
+        <div class="lbl" style="color:${d.kaldstart ? "#fbbf24" : "#f97316"}">${d.kaldstart ? "Eksempel fra testsidene — ingen målinger i dag enda" : "AI-en har brukt"}</div>
         ${d.kuttede > 0 ? `<div class="mono" style="font-size:14px;color:#fbbf24">${d.kuttede} av ${d.kall} sider var for store, tallene er minst</div>` : ""}
       </div>
 
@@ -286,7 +294,7 @@ function tegn() {
           <div class="statNavn">tokens spart</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:#fb923c">${d.forhold < 10 ? komma(d.forhold) : sep(d.forhold)}<span style="font-size:21px;color:#9a9a9a">×</span></div>
+          <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:${d.kaldstart ? "#5a5a5a" : "#fb923c"}">${d.kaldstart ? "—" : (d.forhold < 10 ? komma(d.forhold) : sep(d.forhold))}<span style="font-size:21px;color:#9a9a9a">×</span></div>
           <div class="statNavn">mer enn selve teksten${d.kuttede > 0 ? ", minst" : ""}</div>
         </div>
       </div>
