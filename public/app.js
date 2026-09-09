@@ -288,6 +288,11 @@ const tall = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, "\u20
 /* Desimaltall med norsk komma. Fantes bare på de to storskjermene; telefonen
  * trengte den da energien gikk fra joule (heltall) til wattimer. */
 const komma = (n, d = 2) => Number(n).toLocaleString("nb-NO", { minimumFractionDigits: d, maximumFractionDigits: d });
+/* Watt med saa mange desimaler som trengs — aldri mW. Samme regel som paa
+ * lagtavla, saa telefonen og storskjermen ikke oppgir samme maaling i to
+ * ulike enheter. */
+const desimaler = (x) => x >= 10 ? 1 : x >= 1 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.max(x, 1e-7))) + 1);
+const wattTekst = (w) => w > 0 ? `${komma(w, desimaler(w))} W` : "0 W";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const app = () => document.getElementById("app");
 
@@ -738,7 +743,7 @@ function rommetBoks() {
     const dag = dagWh > mittWh * 1.5 ? ` Og det var bare ditt: alle spørsmålene her i dag (${komma(dagWh, 1)} Wh) er <span class="mono" style="color:#fbbf24">${tidTekst(dagWh * 3600 / maaltW)}</span> på sveiva.` : "";
     return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
       <div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Kunne du sveivet det inn selv?</div>
-      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva ved fellesskjermen lager <span class="mono" style="color:#4ade80">${maaltW < 0.5 ? komma(maaltW * 1000, 0) + " mW" : komma(maaltW, 1) + " W"}</span>, målt. Strømmen til spørsmålet ditt ville tatt <span class="mono" style="color:#fbbf24">${tid}</span> på den.${dag}</div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">Sveiva ved fellesskjermen lager <span class="mono" style="color:#4ade80">${wattTekst(maaltW)}</span>, målt. Strømmen til spørsmålet ditt ville tatt <span class="mono" style="color:#fbbf24">${tid}</span> på den.${dag}</div>
     </div>`;
   }
   return `<div class="kol" style="gap:10px;padding:17px;background:#111;border:1px solid #1e3a24;border-radius:12px">
