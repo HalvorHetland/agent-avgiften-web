@@ -356,7 +356,12 @@ const HANDLINGER = {
   },
   ingenting() {},
   tilResultat() { S.laster = false; S.fase = null; S.klar = false; S.steg = 3; tegn(); },
-  visSvar() { S.visSvar = !S.visSvar; tegn(); },
+  visSvar() {
+    /* Eneste signalet paa om svarkvaliteten interesserte den besoekende —
+     * relevant for kvalitetsaksen, der standen ellers bare samler raastoff. */
+    if (!S.visSvar) loggSteg("les_svar");
+    S.visSvar = !S.visSvar; tegn();
+  },
   spor() { if (S.oppgave.trim()) { S.steg = 2; tegn(); spør(); } },
   prøvIgjen() { spør(); },
   sendFritekst() {
