@@ -97,15 +97,20 @@ function tegnPuls() {
   const el = document.getElementById("naa");
   if (!el) return;
   const fersk = PULS && Number(PULS.alder_s) < 6;
+  const w = fersk ? Number(PULS.watt) : 0, j = fersk ? Number(PULS.joule) : 0;
+  /* Tallet skal fylle kortet: det er den eneste tilbakemeldingen den som
+   * sveiver faar, og kortet staar tomt ellers. Stoerrelsen krymper naar det
+   * blir mange sifre, saa «0,00075» ikke sprenger bredden. */
+  const str = fersk ? (komma(w, desimaler(w)).length > 6 ? 108 : 132) : 0;
   el.innerHTML = fersk ? `
-    <div style="display:flex;align-items:baseline;gap:14px">
-      <div class="mono disp" style="font-size:64px;font-weight:500;line-height:0.9;color:#4ade80">${komma(Number(PULS.watt), desimaler(Number(PULS.watt)))}</div>
-      <div style="font-size:22px;color:#9a9a9a">W akkurat nå</div>
-      <div style="width:14px;height:14px;border-radius:50%;background:#4ade80;margin-left:auto;animation:puls 1s ease-in-out infinite"></div>
+    <div style="display:flex;align-items:baseline;gap:18px;flex-wrap:wrap">
+      <div class="mono disp" style="font-size:${str}px;font-weight:500;line-height:0.88;color:#4ade80;letter-spacing:-0.03em">${komma(w, desimaler(w))}</div>
+      <div style="font-size:32px;color:#9a9a9a">W akkurat nå</div>
+      <div style="width:18px;height:18px;border-radius:50%;background:#4ade80;margin-left:auto;animation:puls 1s ease-in-out infinite"></div>
     </div>
-    <div style="display:flex;gap:34px;margin-top:14px">
-      <div class="kol" style="gap:3px"><div class="mono disp" style="font-size:30px;color:#ededed">${komma(Number(PULS.sek), 0)} s</div><div style="font-size:14px;color:#8a8a8a">denne økta</div></div>
-      <div class="kol" style="gap:3px"><div class="mono disp" style="font-size:30px;color:#ededed">${komma(Number(PULS.joule), 2)} J</div><div style="font-size:14px;color:#8a8a8a">= ${whTekst(Number(PULS.joule) / 3600)}</div></div>
+    <div style="display:flex;gap:56px;margin-top:26px">
+      <div class="kol" style="gap:4px"><div class="mono disp" style="font-size:52px;line-height:1;color:#ededed">${komma(Number(PULS.sek), 0)}<span style="font-size:26px;color:#9a9a9a"> s</span></div><div style="font-size:17px;color:#8a8a8a">denne økta</div></div>
+      <div class="kol" style="gap:4px"><div class="mono disp" style="font-size:52px;line-height:1;color:#ededed">${komma(j, desimaler(j))}<span style="font-size:26px;color:#9a9a9a"> J</span></div><div style="font-size:17px;color:#8a8a8a">= ${whTekst(j / 3600)}</div></div>
     </div>` : `
     <div class="kol" style="gap:14px;justify-content:center;flex-grow:1">
       <div class="disp" style="font-size:44px;font-weight:700;color:#767676;line-height:1.1">Sveiva står stille</div>
@@ -142,7 +147,7 @@ function tegn() {
   document.getElementById("rot").innerHTML = `
   <div class="kol" style="gap:9px;align-items:center;flex-shrink:0">
     <div class="lbl" style="color:#4ade80;font-size:15px">Sveiva mot AI-en</div>
-    <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Hvor lenge må du sveive for ett spørsmål?</div>
+    <div class="disp" style="font-size:46px;font-weight:700;line-height:1;text-align:center">Hvor lenge må du sveive?</div>
   </div>
 
   <!-- Svaret, lest som en setning fra venstre mot hoeyre -->
