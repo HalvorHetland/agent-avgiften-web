@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Agent-avgiften — nullstilling</title>
+<title>Agent-avgiften — admin</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%230a0a0a%22/%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%228%22%20fill%3D%22%23fbbf24%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +15,15 @@
   body{
     margin:0;min-height:100vh;background:#0a0a0a;color:#ededed;
     font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Helvetica,sans-serif;
-    -webkit-font-smoothing:antialiased;
-    display:flex;align-items:center;justify-content:center;padding:28px;
+    -webkit-font-smoothing:antialiased;padding:26px 22px 60px;
   }
   .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
   .disp{font-family:"Space Grotesk","IBM Plex Sans",system-ui,sans-serif;letter-spacing:-0.02em}
-  .lbl{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6b6b;font-weight:600}
+  .lbl{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#6b6b6b;font-weight:600}
   .kol{display:flex;flex-direction:column}
-  main{width:100%;max-width:460px;display:flex;flex-direction:column;gap:20px}
+  .fin{font-size:12.5px;color:#7f7f7f;line-height:1.5}
+  main{width:100%;max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+
   input[type=text]{
     width:100%;padding:15px 16px;background:#111;border:1px solid #303030;border-radius:11px;
     color:#ededed;font-family:"IBM Plex Mono",monospace;font-size:16px;outline:none;
@@ -31,119 +32,431 @@
   label{display:flex;align-items:flex-start;gap:11px;font-size:15px;color:#cfcfcf;line-height:1.45;cursor:pointer}
   input[type=checkbox]{margin-top:3px;width:18px;height:18px;accent-color:#fbbf24;flex-shrink:0}
   button{
-    width:100%;height:56px;border:0;border-radius:12px;background:#7f1d1d;color:#fff;
-    font-family:"Space Grotesk",sans-serif;font-size:18px;font-weight:700;cursor:pointer;
+    height:52px;border:0;border-radius:12px;background:#4f46e5;color:#fff;
+    font-family:"Space Grotesk",sans-serif;font-size:17px;font-weight:700;cursor:pointer;padding:0 24px;
   }
   button:disabled{background:#1c1c1c;color:#5a5a5a;cursor:not-allowed}
-  button:not(:disabled):hover{background:#991b1b}
-  .kort{padding:18px 19px;background:#111;border:1px solid #282828;border-radius:12px}
+  button:not(:disabled):hover{filter:brightness(1.12)}
+  button.fare{background:#7f1d1d;width:100%}
+
+  .kort{padding:20px 21px;background:#111;border:1px solid #282828;border-radius:13px}
   .advarsel{border-left:4px solid #fbbf24;background:#0e0e0e}
-  .fin{font-size:12.5px;color:#7f7f7f;line-height:1.5}
+  .rutenett{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:16px}
+  .korttittel{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:15px}
+
+  /* Helsestripa. Fire tall som svarer paa «virker standen akkurat naa». */
+  .stripe{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:#282828;
+    border:1px solid #282828;border-radius:13px;overflow:hidden}
+  .rute{background:#111;padding:17px 19px;display:flex;flex-direction:column;gap:3px}
+  .ruteTall{font-size:31px;font-weight:500;line-height:1.05}
+  .ruteNavn{font-size:13px;color:#8a8a8a}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:11.5px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6b6b;
+     font-weight:600;padding:0 10px 9px 0;border-bottom:1px solid #282828}
+  td{padding:9px 10px 9px 0;border-bottom:1px solid #1c1c1c;color:#cfcfcf;vertical-align:top}
+  td.h{text-align:right}
+  th.h{text-align:right;padding-right:0}
+
+  /* Stolpene i trakten og i holdningsfordelingene er samme komponent: en
+   * etikett, et tall, og en bredde som er andel av det stoerste tallet. */
+  .stolpe{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline;margin-bottom:11px}
+  .stolpeSpor{grid-column:1/-1;height:9px;background:#1c1c1c;border-radius:5px;overflow:hidden}
+  .stolpeFyll{height:100%;border-radius:5px}
+
+  .merke{font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid #303030;color:#9a9a9a}
+  .merke-ok{border-color:#1e3a24;color:#4ade80}
+  .merke-vent{border-color:#3a2412;color:#fb923c}
+  #laas{max-width:430px;margin:0 auto}
+  #dash{display:none}
   #svar{display:none}
 </style>
 </head>
 <body>
 <main>
-  <div class="kol" style="gap:8px">
-    <div class="lbl" style="color:#fbbf24">Før standen åpner</div>
-    <div class="disp" style="font-size:30px;font-weight:700;line-height:1.15">Nullstill målingene</div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div class="kol" style="gap:6px">
+      <div class="lbl" style="color:#fbbf24">Agent-avgiften</div>
+      <div class="disp" style="font-size:31px;font-weight:700;line-height:1.1">Admin</div>
+    </div>
+    <div class="kol" id="topphoeyre" style="gap:5px;align-items:flex-end"></div>
   </div>
 
-  <div class="kort advarsel kol" style="gap:11px">
+  <!-- Laasen. Koden er den samme som nullstillingen bruker, og den sjekkes i
+       databasen — sida her kan ikke lese noe uten den. -->
+  <div class="kort kol" id="laas" style="gap:14px">
     <div class="kol" style="gap:5px">
-      <div style="font-size:15px;color:#ededed;line-height:1.5">
-        <b>Storskjermen din</b> nullstilles alltid: <span class="mono">ai_runs</span>,
-        <span class="mono">crank_runs</span>, <span class="mono">holdninger</span>,
-        <span class="mono">free_text</span>, <span class="mono">guesses</span>.
-      </div>
-      <div class="fin">Tokens, spørsmål, siste innleverte, energi og vann går til null.</div>
+      <div class="lbl">Kode</div>
+      <div class="fin">Samme kode som nullstillingen. Uten den svarer databasen ingenting.</div>
     </div>
-    <div class="fin" style="padding-top:9px;border-top:1px solid #282828">
-      Kan ikke angres. Tidspunktet logges, så oppgaven vet når innsamlingen startet.
-    </div>
-  </div>
-
-  <div class="kol" style="gap:9px">
-    <div class="lbl">Kode</div>
     <input type="text" id="kode" aria-label="Kode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ord-ord-ord-tall">
+    <button id="laasOpp">Vis tallene</button>
+    <div class="fin" id="laasFeil" style="color:#fb923c"></div>
   </div>
 
-  <div class="kort">
-    <label>
-      <input type="checkbox" id="felles">
-      <span>Nullstill også <b>lagtavla</b> — den felles energipotten
-        (<span class="mono">event_totals</span>), som inneholder Gjermunds tall.
-        <b style="color:#fbbf24">Dette er hans tabell</b> — avtal det med ham først.
-        Storskjermen din påvirkes ikke av dette valget.</span>
-    </label>
-  </div>
+  <div class="kol" id="dash" style="gap:22px"></div>
 
-  <div class="kol" style="gap:9px">
-    <div class="lbl">Skriv <span style="color:#ededed">NULLSTILL</span> for å bekrefte</div>
-    <input type="text" id="bekreft" aria-label="Skriv NULLSTILL for å bekrefte" autocomplete="off" autocapitalize="characters" spellcheck="false">
-  </div>
-
-  <button id="kjor" disabled>Slett alle målinger</button>
-  <div class="kort kol" id="svar" style="gap:7px"></div>
-  <div class="fin">Siden er ikke lenket fra noen av skjermene og er merket noindex.</div>
 </main>
 
 <script src="../config.js"></script>
 <script>
-/* Nullstillingen kjøres av en `security definer`-funksjon i databasen som
- * krever koden. anon-nøkkelen alene kan ikke slette noe — den har bare INSERT.
- * Derfor trenger denne siden ingen service-nøkkel, og den kan ligge åpent. */
-const kode = document.getElementById("kode");
-const bekreft = document.getElementById("bekreft");
-const felles = document.getElementById("felles");
-const kjor = document.getElementById("kjor");
-const svar = document.getElementById("svar");
+/* Sida har bare anon-noekkelen, som er INSERT-only. Baade lesing og sletting
+ * gaar gjennom `security definer`-funksjoner som krever koden, saa de raa
+ * tabellene kan bli staaende ulesbare for anon og sida kan ligge aapent. */
 
-function vurder() {
-  kjor.disabled = !(kode.value.trim() && bekreft.value.trim().toUpperCase() === "NULLSTILL");
+const P = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sep = (n) => Number(n ?? 0).toLocaleString("nb-NO", { maximumFractionDigits: 0 });
+const komma = (n, d = 2) => Number(n ?? 0).toLocaleString("nb-NO", { minimumFractionDigits: d, maximumFractionDigits: d });
+/* Samme regel som telefonen og storskjermen: watt og wattimer med saa mange
+ * desimaler som trengs, aldri mW eller µWh. */
+const desimaler = (x) => x >= 10 ? 1 : x >= 1 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.max(x, 1e-7))) + 1);
+const wh = (x) => Number(x) > 0 ? komma(x, desimaler(Number(x))) : "0";
+const klokke = (t) => t ? new Date(t).toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" }) : "—";
+
+/** «for 3 min siden». Null naar det aldri har skjedd — det er ikke det samme
+ *  som at det skjedde for lenge siden, og skal ikke se likt ut. */
+function siden(t, naa) {
+  if (!t) return null;
+  const s = Math.max(0, (new Date(naa) - new Date(t)) / 1000);
+  if (s < 60) return "nå nettopp";
+  const m = Math.round(s / 60);
+  if (m < 60) return `for ${m} min siden`;
+  const h = Math.floor(m / 60);
+  return `for ${h} t ${m % 60} min siden`;
 }
-kode.oninput = vurder;
-bekreft.oninput = vurder;
 
-kjor.onclick = async () => {
-  kjor.disabled = true;
-  kjor.textContent = "Sletter …";
+/* Stegnavnene slik de logges av telefonen, i den rekkefoelgen de skjer.
+ * Etikettene er skjermenes egne overskrifter, ikke noe jeg har funnet paa,
+ * saa trakten kan sammenliknes med det folk faktisk saa. */
+const STEG = [
+  ["s0", "Åpnet — første spørsmål"],
+  ["s1", "Valgte side og oppgave"],
+  ["s2", "Målingen kjørte"],
+  ["s3", "Så de to regningene"],
+  ["s4", "Andre spørsmål"],
+  ["s5", "Så hva det kostet"],
+  ["s6", "Fritekst"],
+  ["s7", "Takkeskjermen"],
+  ["sferdig", "Avsluttet"],
+];
+
+let KODE = sessionStorage.getItem("admin_kode") || "";
+let D = null;
+
+async function hent(kode) {
+  const r = await fetch(`${CFG.SUPABASE_URL}/rest/v1/rpc/admin_oversikt`, {
+    method: "POST",
+    headers: {
+      apikey: CFG.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ kode }),
+  });
+  return r.json();
+}
+
+P("laasOpp").onclick = async () => {
+  const k = P("kode").value.trim();
+  if (!k) return;
+  P("laasOpp").disabled = true; P("laasOpp").textContent = "Henter …";
+  P("laasFeil").textContent = "";
   try {
-    const r = await fetch(`${CFG.SUPABASE_URL}/rest/v1/rpc/nullstill_standen`, {
-      method: "POST",
-      headers: {
-        apikey: CFG.SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ kode: kode.value.trim(), ogsaa_felles: felles.checked }),
-    });
-    const d = await r.json();
-    svar.style.display = "flex";
+    const d = await hent(k);
     if (d && d.ok) {
-      svar.style.borderColor = "#1e3a24";
-      svar.innerHTML = `<div class="disp" style="font-size:19px;font-weight:700;color:#4ade80">Nullstilt</div>
-        <div style="font-size:15px;color:#cfcfcf;line-height:1.5">
-          Slettet <span class="mono">${d.slettet_ai}</span> AI-rader og
-          <span class="mono">${d.slettet_sveiv}</span> sveiverader.
-          Storskjermen din er nullstilt.
-          ${d.felles_ogsaa ? "Lagtavlas felles pott er også satt til null." : "Lagtavlas felles pott er urørt."}
-        </div>
-        <div class="fin">Åpne skjermene på nytt, så starter kurven fra null.</div>`;
-      bekreft.value = ""; vurder();
+      KODE = k; sessionStorage.setItem("admin_kode", k);
+      D = d; P("laas").style.display = "none"; P("dash").style.display = "flex";
+      tegn(); setInterval(oppdater, 15000);
     } else {
-      svar.style.borderColor = "#3a2412";
-      svar.innerHTML = `<div class="disp" style="font-size:19px;font-weight:700;color:#fb923c">Ikke nullstilt</div>
-        <div style="font-size:15px;color:#cfcfcf">${(d && d.grunn) || "ukjent feil"}</div>`;
+      P("laasFeil").textContent = (d && d.grunn) || "ukjent feil";
     }
   } catch (e) {
-    svar.style.display = "flex";
-    svar.style.borderColor = "#3a2412";
-    svar.innerHTML = `<div style="font-size:15px;color:#fb923c">Nådde ikke databasen: ${e.message}</div>`;
+    P("laasFeil").textContent = `Nådde ikke databasen: ${e.message}`;
   }
-  kjor.textContent = "Slett alle målinger";
-  vurder();
+  P("laasOpp").disabled = false; P("laasOpp").textContent = "Vis tallene";
 };
+P("kode").onkeydown = (e) => { if (e.key === "Enter") P("laasOpp").click(); };
+P("kode").value = KODE;
+
+async function oppdater() {
+  try { const d = await hent(KODE); if (d && d.ok) { D = d; tegn(); } } catch { /* nettet kommer tilbake */ }
+}
+
+// ─────────────────────────────────────────────────────────────── tegning
+
+function stolpe(navn, n, maks, farge, hale = "") {
+  const b = maks > 0 ? Math.max(n > 0 ? 1.5 : 0, (n / maks) * 100) : 0;
+  return `<div class="stolpe">
+    <div style="font-size:14px;color:#cfcfcf">${esc(navn)}</div>
+    <div class="mono" style="font-size:14px;color:${farge};white-space:nowrap">${sep(n)}${hale}</div>
+    <div class="stolpeSpor"><div class="stolpeFyll" style="width:${b}%;background:${farge}"></div></div>
+  </div>`;
+}
+
+function tegn() {
+  const d = D, t = d.totaler || {}, s = d.sveiv || {};
+  const aiWh = Number(t.dekoding_wh || 0) + Number(t.lesing_wh || 0);
+  const sisteAi = siden(d.siste.ai_run, d.naa);
+  const sisteSveiv = siden(d.siste.sveiv, d.naa);
+
+  P("topphoeyre").innerHTML = `
+    <div class="fin">Oppdateres hvert 15. sekund · sist kl ${klokke(d.naa)}</div>
+    <div class="fin">${d.siden ? `Teller fra nullstillingen kl ${klokke(d.siden)}` : "Aldri nullstilt — teller alt"}</div>`;
+
+  // ── Helsestripa. Svarer paa «virker det akkurat naa», ikke paa «hva fant vi».
+  const stripe = `
+  <div class="stripe">
+    <div class="rute">
+      <div class="mono ruteTall" style="color:${Number(d.rader.ai_runs) > 0 ? "#4ade80" : "#767676"}">${sep(d.rader.ai_runs)}</div>
+      <div class="ruteNavn">rader lagret (ai_runs)</div>
+      <div class="fin">${sisteAi ? `siste ${sisteAi}` : "ingen målinger enda"}</div>
+    </div>
+    <div class="rute">
+      <div class="mono ruteTall" style="color:#ededed">${sep(t.spoersmaal)}</div>
+      <div class="ruteNavn">spørsmål stilt</div>
+      <div class="fin">${sep(t.kall)} modellkall, ${sep(t.kuttede_kall)} kuttede sider</div>
+    </div>
+    <div class="rute">
+      <div class="mono ruteTall" style="color:${Number(t.brukt_usd) > Number(t.budsjett_usd) * 0.8 ? "#fb923c" : "#ededed"}">${komma(t.brukt_usd, 2)}</div>
+      <div class="ruteNavn">dollar brukt av ${komma(t.budsjett_usd, 0)}</div>
+      <div class="fin">${Number(t.budsjett_usd) > 0 ? komma(Number(t.brukt_usd) / Number(t.budsjett_usd) * 100, 0) : "0"} % av dagens budsjett</div>
+    </div>
+    <div class="rute">
+      <div class="mono ruteTall" style="color:${Number(s.oekter) > 0 ? "#4ade80" : "#767676"}">${sep(s.oekter)}</div>
+      <div class="ruteNavn">sveiveøkter</div>
+      <div class="fin">${sisteSveiv ? `siste ${sisteSveiv}` : "brua har ikke sendt noe"}</div>
+    </div>
+  </div>`;
+
+  // ── Trakten. Hvor mange naadde hvert steg, og hvor faller de fra.
+  const trakt = Object.fromEntries((d.trakt || []).map((x) => [x.navn, Number(x.oekter)]));
+  const start = trakt.s0 || 0;
+  const traktKort = `
+  <div class="kort">
+    <div class="korttittel">
+      <div class="lbl">Hvor langt kom de</div>
+      <div class="fin">${start ? `${sep(trakt.sferdig || 0)} av ${sep(start)} helt fram` : "ingen økter enda"}</div>
+    </div>
+    ${STEG.map(([n, navn]) => {
+      const v = trakt[n] || 0;
+      const andel = start > 0 ? Math.round((v / start) * 100) : 0;
+      return stolpe(navn, v, start, n === "sferdig" ? "#4ade80" : "#f97316",
+                    start > 0 ? `<span style="color:#6b6b6b"> · ${andel} %</span>` : "");
+    }).join("")}
+    <div class="fin" style="margin-top:2px">Ett spor per steg per økt, så dette er personer som nådde steget — ikke antall trykk. «Målingen kjørte» tegnes mens AI-en jobber.</div>
+  </div>`;
+
+  // ── Energien. Maalt dekoding og modellert lesing holdes fra hverandre, som
+  //    paa alle de andre skjermene.
+  const energiKort = `
+  <div class="kort">
+    <div class="korttittel"><div class="lbl">Energi og vann</div>
+      <div class="fin">bare min stasjon</div></div>
+    <table>
+      <tr><td>Svarene (EcoLogits 0.11.1)</td><td class="h mono" style="color:#4ade80">${wh(t.dekoding_wh)} Wh</td></tr>
+      <tr><td>Lesingen (FLOP-anslag)</td><td class="h mono" style="color:#fb923c">${wh(t.lesing_wh)} Wh</td></tr>
+      <tr><td class="fin" style="padding-left:0">båndet for lesingen</td><td class="h mono fin">${wh(t.lesing_wh_min)} – ${wh(t.lesing_wh_max)} Wh</td></tr>
+      <tr><td><b>Til sammen</b></td><td class="h mono" style="color:#ededed"><b>${wh(aiWh)} Wh</b></td></tr>
+      <tr><td>Vann til kjøling</td><td class="h mono">${komma(Number(t.vann_l) * 1000, 1)} mL</td></tr>
+      <tr><td>Per spørsmål</td><td class="h mono">${Number(t.spoersmaal) > 0 ? wh(aiWh / Number(t.spoersmaal)) + " Wh" : "—"}</td></tr>
+      <tr><td>Tegn AI-en leste</td><td class="h mono">${sep(t.raa_tegn)}</td></tr>
+    </table>
+    <div class="fin" style="margin-top:11px">Grønt er målt fra modellens egne tokentall. Oransje er et anslag med kilde, ikke en måling.</div>
+  </div>`;
+
+  // ── Sveiva.
+  const sveivKort = `
+  <div class="kort">
+    <div class="korttittel"><div class="lbl">Sveiva</div>
+      <div class="fin">${d.felles ? `felles pott ${wh(d.felles.total_energy_wh)} Wh` : ""}</div></div>
+    <table>
+      <tr><td>Økter</td><td class="h mono">${sep(s.oekter)}</td></tr>
+      <tr><td>Energi laget</td><td class="h mono" style="color:#4ade80">${komma(s.joules, 3)} J</td></tr>
+      <tr><td>Snitt per økt</td><td class="h mono">${komma(s.snitt_joules, 3)} J</td></tr>
+      <tr><td>Høyeste effekt</td><td class="h mono">${wh(s.topp_watt)} W</td></tr>
+      <tr><td>Lengste økt</td><td class="h mono">${komma(Number(s.lengste_ms) / 1000, 0)} s</td></tr>
+      <tr><td>Pulser fra brua</td><td class="h mono" style="color:${Number(d.rader.sveiv_puls) > 0 ? "#cfcfcf" : "#767676"}">${sep(d.rader.sveiv_puls)}</td></tr>
+    </table>
+    <div class="fin" style="margin-top:11px">Kommer det ingen pulser mens noen sveiver, kjører ikke brua på laptopen.</div>
+  </div>`;
+
+  // ── Holdningene. Foer og etter hver for seg, med spoersmaalsteksten slik
+  //    den sto paa skjermen da svaret ble gitt.
+  const grupper = {};
+  for (const h of d.holdninger || []) {
+    const n = `${h.runde}|${h.noekkel}`;
+    (grupper[n] = grupper[n] || { runde: h.runde, spoersmaal: h.spoersmaal, rader: [] }).rader.push(h);
+  }
+  const holdKort = Object.values(grupper).length ? Object.values(grupper).map((g) => {
+    const maks = Math.max(...g.rader.map((r) => Number(r.n)));
+    const sum = g.rader.reduce((a, r) => a + Number(r.n), 0);
+    return `<div class="kort">
+      <div class="korttittel">
+        <div class="lbl">${g.runde === "foer" ? "Før" : "Etter"} · ${sep(sum)} svar</div>
+      </div>
+      <div style="font-size:15px;color:#ededed;line-height:1.4;margin-bottom:14px">${esc(g.spoersmaal)}</div>
+      ${g.rader.map((r) => stolpe(r.svar, Number(r.n), maks, g.runde === "foer" ? "#a78bfa" : "#4ade80")).join("")}
+    </div>`;
+  }).join("") : `<div class="kort"><div class="lbl">Holdninger</div>
+      <div class="fin" style="margin-top:10px">Ingen svar enda.</div></div>`;
+
+  // ── Fritekst. Deltakernes egne ord, nyeste foerst.
+  const fritekstKort = `
+  <div class="kort">
+    <div class="korttittel"><div class="lbl">Hva overrasket deg</div>
+      <div class="fin">${sep((d.fritekst || []).length)} svar</div></div>
+    ${(d.fritekst || []).length ? (d.fritekst).map((f) => `
+      <div class="kol" style="gap:3px;padding:11px 0;border-bottom:1px solid #1c1c1c">
+        <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">${esc(f.tekst)}</div>
+        <div class="fin">kl ${klokke(f.tid)}</div>
+      </div>`).join("") : `<div class="fin">Ingen svar enda.</div>`}
+  </div>`;
+
+  // ── Sidene. Hvilke oppgaver som er kjoert, og hvor stort forholdet ble.
+  const sider = d.sider || [];
+  const siderKort = `
+  <div class="kort">
+    <div class="korttittel"><div class="lbl">Per side og oppgave</div>
+      <div class="fin">forholdet er alt AI-en leste, delt på selve teksten</div></div>
+    ${sider.length ? `<table>
+      <tr><th>Side</th><th>Oppgave</th><th class="h">N</th><th class="h">Snitt</th><th class="h">Fra–til</th><th class="h">Tokens inn</th></tr>
+      ${sider.map((p) => `<tr>
+        <td style="color:#ededed">${esc(p.side)}</td>
+        <td class="fin" style="padding-right:10px">${esc(p.oppgave)}</td>
+        <td class="h mono">${sep(p.n)}</td>
+        <td class="h mono" style="color:#fb923c">${komma(p.snitt_forhold, 1)}×</td>
+        <td class="h mono fin">${komma(p.min_forhold, 1)}–${komma(p.maks_forhold, 1)}</td>
+        <td class="h mono">${sep(p.snitt_inn_raa)} / ${sep(p.snitt_inn_reint)}</td>
+      </tr>`).join("")}
+    </table>` : `<div class="fin">Ingen målinger enda.</div>`}
+  </div>`;
+
+  // ── Avvik. En blokkert side er et funn, ikke bare en feil.
+  const avvik = d.avvik || [];
+  const avvikKort = `
+  <div class="kort">
+    <div class="korttittel"><div class="lbl">Blokkeringer og feil</div>
+      <div class="fin">siden nullstillingen</div></div>
+    ${avvik.length ? `<table>
+      <tr><th>Type</th><th>Hva</th><th class="h">Antall</th><th class="h">Siste</th></tr>
+      ${avvik.map((a) => `<tr>
+        <td><span class="merke" style="border-color:${a.slag === "blokkert" ? "#3a2412" : "#7f1d1d"};color:${a.slag === "blokkert" ? "#fb923c" : "#f87171"}">${esc(a.slag)}</span></td>
+        <td style="color:#ededed">${esc(a.navn)}</td>
+        <td class="h mono">${sep(a.n)}</td>
+        <td class="h mono fin">kl ${klokke(a.siste)}</td>
+      </tr>`).join("")}
+    </table>` : `<div class="fin">Ingenting siden nullstillingen.</div>`}
+  </div>`;
+
+  // ── Loggen over nullstillinger. Oppgaven skal kunne si naar innsamlingen
+  //    startet, og det er denne raden som svarer paa det.
+  const nl = d.nullstillinger || [];
+  const loggKort = `
+  <div class="kort">
+    <div class="korttittel"><div class="lbl">Nullstillinger</div>
+      <div class="fin">${sep(nl.length)} totalt</div></div>
+    ${nl.length ? `<table>
+      <tr><th>Tidspunkt</th><th class="h">AI-rader</th><th class="h">Sveiverader</th><th class="h">Felles pott</th></tr>
+      ${nl.slice(0, 8).map((n) => `<tr>
+        <td class="mono">${new Date(n.tid).toLocaleString("nb-NO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+        <td class="h mono">${sep(n.slettet_ai)}</td>
+        <td class="h mono">${sep(n.slettet_sveiv)}</td>
+        <td class="h fin">${n.felles_ogsaa ? "også nullstilt" : "urørt"}</td>
+      </tr>`).join("")}
+    </table>` : `<div class="fin">Aldri nullstilt.</div>`}
+  </div>`;
+
+  P("dash").innerHTML = `
+    ${stripe}
+    <div class="rutenett">${traktKort}${energiKort}${sveivKort}</div>
+    <div class="rutenett">${holdKort}${fritekstKort}</div>
+    ${siderKort}
+    <div class="rutenett">${avvikKort}${loggKort}</div>
+    ${fareSone()}`;
+  koblFare();
+}
+
+// ───────────────────────────────────────────────────────── nullstillingen
+
+/* Sletting ligger nederst, bak sin egen bekreftelse. Den var hele sida foer;
+ * naa er den det siste man kommer til, som er riktig rekkefoelge naar man
+ * aapner sida for aa se paa tall. */
+function fareSone() {
+  return `
+  <div class="kort advarsel kol" style="gap:16px;border-left-color:#7f1d1d">
+    <div class="kol" style="gap:6px">
+      <div class="lbl" style="color:#f87171">Farlig</div>
+      <div class="disp" style="font-size:22px;font-weight:700">Nullstill målingene</div>
+      <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">
+        Sletter <span class="mono">ai_runs</span>, <span class="mono">crank_runs</span>,
+        <span class="mono">holdninger</span>, <span class="mono">free_text</span>,
+        <span class="mono">guesses</span> og <span class="mono">sveiv_puls</span>.
+        Hendelsesloggen blir stående, så vi vet når innsamlingen startet.
+      </div>
+      <div class="fin">Kan ikke angres. Kjør CSV-eksporten først hvis radene skal brukes.</div>
+    </div>
+    <label>
+      <input type="checkbox" id="felles">
+      <span>Nullstill også <b>lagtavla</b> — den felles energipotten, som inneholder Gjermunds tall.
+        <b style="color:#fbbf24">Dette er hans tabell</b> — avtal det med ham først.
+        Min storskjerm påvirkes ikke av dette valget.</span>
+    </label>
+    <div class="kol" style="gap:8px">
+      <div class="lbl">Skriv <span style="color:#ededed">NULLSTILL</span> for å bekrefte</div>
+      <input type="text" id="bekreft" aria-label="Skriv NULLSTILL for å bekrefte" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    </div>
+    <button class="fare" id="kjor" disabled>Slett alle målinger</button>
+    <div class="kort kol" id="svar" style="gap:7px"></div>
+  </div>`;
+}
+
+function koblFare() {
+  const bekreft = P("bekreft"), kjor = P("kjor"), felles = P("felles"), svar = P("svar");
+  const vurder = () => { kjor.disabled = bekreft.value.trim().toUpperCase() !== "NULLSTILL"; };
+  bekreft.oninput = vurder; vurder();
+
+  kjor.onclick = async () => {
+    kjor.disabled = true; kjor.textContent = "Sletter …";
+    try {
+      const r = await fetch(`${CFG.SUPABASE_URL}/rest/v1/rpc/nullstill_standen`, {
+        method: "POST",
+        headers: {
+          apikey: CFG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ kode: KODE, ogsaa_felles: felles.checked }),
+      });
+      const d = await r.json();
+      svar.style.display = "flex";
+      if (d && d.ok) {
+        svar.style.borderColor = "#1e3a24";
+        svar.innerHTML = `<div class="disp" style="font-size:18px;font-weight:700;color:#4ade80">Nullstilt</div>
+          <div style="font-size:14.5px;color:#cfcfcf;line-height:1.5">
+            Slettet <span class="mono">${d.slettet_ai}</span> AI-rader og
+            <span class="mono">${d.slettet_sveiv}</span> sveiverader.
+            ${d.felles_ogsaa ? "Lagtavlas felles pott er også satt til null." : "Lagtavlas felles pott er urørt."}
+          </div>
+          <div class="fin">Åpne skjermene på nytt, så starter kurven fra null.</div>`;
+        oppdater();
+      } else {
+        svar.style.borderColor = "#3a2412";
+        svar.innerHTML = `<div class="disp" style="font-size:18px;font-weight:700;color:#fb923c">Ikke nullstilt</div>
+          <div style="font-size:14.5px;color:#cfcfcf">${esc((d && d.grunn) || "ukjent feil")}</div>`;
+      }
+    } catch (e) {
+      svar.style.display = "flex";
+      svar.style.borderColor = "#3a2412";
+      svar.innerHTML = `<div style="font-size:14.5px;color:#fb923c">Nådde ikke databasen: ${esc(e.message)}</div>`;
+    }
+    kjor.textContent = "Slett alle målinger";
+  };
+}
+
+// Er koden allerede i denne fana, hopper vi rett inn.
+if (KODE) P("laasOpp").click();
 </script>
 </body>
 </html>

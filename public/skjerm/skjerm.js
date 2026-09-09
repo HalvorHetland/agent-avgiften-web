@@ -30,8 +30,11 @@ const TELEFON_URL = params.get("telefon")
   || location.origin + location.pathname.replace(/skjerm\/.*$/, "");
 
 
-// Korpusmedianene, til kaldstart. Merket som korpus, aldri som «i dag».
-const KORPUS = { raa: 103001, reint: 1175, forhold: 87.7 };
+/* Skjermen viste tidligere korpusmedianer (103 001 / 1 175) foer foerste
+ * maaling, saa den ikke sto tom. Det var forvirrende: tallene sto der etter en
+ * nullstilling og saa ut som dagens, og etiketten «korpus» var ikke nok. Naa
+ * viser skjermen bare det som er maalt i dag. Er det ingenting maalt, staar
+ * det null, og teksten sier at det venter paa foerste spoersmaal. */
 
 let T = null;        // siste booth_totals
 let SISTE = [];      // siste innleverte målinger
@@ -92,8 +95,8 @@ hent();
 function tallene() {
   const kaldstart = !T || Number(T.kall) === 0;
 
-  const raa = kaldstart ? KORPUS.raa : Number(T.tokens_raa);
-  const reint = kaldstart ? KORPUS.reint : Number(T.tokens_reint);
+  const raa = kaldstart ? 0 : Number(T.tokens_raa);
+  const reint = kaldstart ? 0 : Number(T.tokens_reint);
   const forhold = reint > 0 ? raa / reint : 0;
 
   const kall = kaldstart ? 0 : Number(T.kall);
@@ -244,7 +247,7 @@ function tegn() {
 
     <div class="kort kol" style="flex-grow:1;gap:18px;padding:32px;border-color:#3a2412;min-width:0">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="lbl" style="color:${d.kaldstart ? "#fbbf24" : "#f97316"}">${d.kaldstart ? "Eksempel fra testsidene — ingen målinger i dag enda" : "AI-en har brukt"}</div>
+        <div class="lbl" style="color:${d.kaldstart ? "#6b6b6b" : "#f97316"}">AI-en har brukt${d.kaldstart ? " · venter på første spørsmål" : ""}</div>
         ${d.kuttede > 0 ? `<div class="mono" style="font-size:14px;color:#fbbf24">${d.kuttede} av ${d.kall} sider var for store, tallene er minst</div>` : ""}
       </div>
 
@@ -271,14 +274,14 @@ function tegn() {
             <span style="font-size:19px;color:#ededed">Alt AI-en måtte lese</span>
             <span class="mono" style="font-size:19px;color:#fb923c">${sep(d.raa)}</span>
           </div>
-          <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:100%;height:100%;background:#f97316"></div></div>
+          <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${d.raa > 0 ? 100 : 0}%;height:100%;background:#f97316"></div></div>
         </div>
         <div class="kol" style="gap:7px">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
             <span style="font-size:19px;color:#ededed">Selve teksten på siden</span>
             <span class="mono" style="font-size:19px;color:#4ade80">${sep(d.reint)}</span>
           </div>
-          <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${reintBredde}%;min-width:6px;height:100%;background:#4ade80"></div></div>
+          <div style="height:36px;background:#1c1c1c;border-radius:7px;overflow:hidden"><div style="width:${reintBredde}%;${d.reint > 0 ? "min-width:6px;" : ""}height:100%;background:#4ade80"></div></div>
         </div>
       </div>
 
@@ -373,10 +376,6 @@ function tegn() {
       <div style="font-size:15px;color:#8a8a8a;line-height:1.5">${d.harMetode
         ? "Strømmen er regnet ut, ikke målt — ingen leverandør oppgir hvor mye ett spørsmål bruker. Vi regner både det å lese siden og det å svare, og lesingen er den klart største posten. Det er nettopp den de vanlige metodene hopper over. Vi oppgir alltid det laveste anslaget. Beregningen bygger på EcoLogits og Epoch AI, og er dokumentert med kilder."
         : "Strømmen er regnet ut, ikke målt: 0,24 Wh per spørsmål, målt av Google i 2025 på en gjennomsnittlig forespørsel. Det laveste anslaget, ikke et gjennomsnitt."}</div>
-    </div>
-    <div class="kol" style="gap:5px;flex-shrink:0;align-items:flex-end;padding-left:26px;border-left:1px solid #282828">
-      <div class="mono" style="font-size:19px;color:${d.brukt / (d.budsjett || 1) > 0.8 ? "#fbbf24" : "#8a8a8a"}">${komma(d.brukt, 2)} / ${komma(d.budsjett, 2)} $</div>
-      <div style="font-size:14px;color:#767676">av dagens budsjett</div>
     </div>
   </div>`;
 }
