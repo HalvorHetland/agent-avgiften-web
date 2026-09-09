@@ -67,8 +67,14 @@ const SIDER = [
   ] },
 ];
 
+/* Spoersmaalene og alternativene defineres ett sted, og lagres ordrett paa
+ * hver rad. Uten det kan datasettet ikke si hvilken ordlyd en respondent saa
+ * — og ordlyden er endret flere ganger under bygging. */
 const SP1 = "Har du tenkt på at AI-en må lese nettsider for å svare deg?";
+const SP1_ALT = ["Ja, jeg tenker på det", "Har hørt om det", "Nei, aldri tenkt på det"];
 const SP2 = "Hvem burde gjøre noe med dette?";
+const SP2_ALT = ["Nettstedene — de burde være lettere å lese", "AI-selskapene — de burde lese smartere", "Begge to", "Det er greit som det er"];
+const SP_FRITEKST = "Hva overrasket deg?";
 
 // ─────────────────────────────────────────────────────────────────── tilstand
 
@@ -335,11 +341,13 @@ function tegn() {
 
 const HANDLINGER = {
   svar1(el) {
-    skriv("holdninger", { session_id: S.session_id, runde: "foer", question_key: "sp1_bevissthet", svar: el.dataset.verdi });
+    skriv("holdninger", { session_id: S.session_id, runde: "foer", question_key: "sp1_bevissthet",
+      svar: el.dataset.verdi, spoersmaal: SP1, alternativer: SP1_ALT });
     S.steg = 1; tegn();
   },
   svar2(el) {
-    skriv("holdninger", { session_id: S.session_id, runde: "etter", question_key: "sp2_ansvar", svar: el.dataset.verdi });
+    skriv("holdninger", { session_id: S.session_id, runde: "etter", question_key: "sp2_ansvar",
+      svar: el.dataset.verdi, spoersmaal: SP2, alternativer: SP2_ALT });
     S.steg = 5; tegn(); hentTotaler();
   },
   velgSide(el) {
@@ -366,7 +374,7 @@ const HANDLINGER = {
   prøvIgjen() { spør(); },
   sendFritekst() {
     const t = S.fritekst.trim();
-    if (t) skriv("free_text", { session_id: S.session_id, body: t.slice(0, 500) });
+    if (t) skriv("free_text", { session_id: S.session_id, body: t.slice(0, 500), spoersmaal: SP_FRITEKST });
     S.fritekst = "";
     S.steg = 7; tegn(); hentTotaler();
   },
@@ -393,7 +401,7 @@ const køLinje = () => {
 };
 
 function s0() {
-  const alt = ["Ja, jeg tenker på det", "Har hørt om det", "Nei, aldri tenkt på det"];
+  const alt = SP1_ALT;
   return `
   <div class="kol" style="gap:20px;height:100%">
     <div class="lbl" style="color:#f97316">Før vi begynner</div>
@@ -614,7 +622,7 @@ function s3() {
 }
 
 function s4() {
-  const alt = ["Nettstedene — de burde være lettere å lese", "AI-selskapene — de burde lese smartere", "Begge to", "Det er greit som det er"];
+  const alt = SP2_ALT;
 
   /* «Hvem burde gjøre noe med DETTE?» forutsetter at man husker tallet fra
    * forrige skjerm. Førsteårsstudenter som nettopp har sett ett tall én gang
@@ -698,7 +706,7 @@ function s6() {
   return `
   <div class="kol" style="gap:18px;height:100%">
     <div class="lbl" style="color:#4ade80">Takk</div>
-    <div class="disp" style="font-size:31px;font-weight:700;line-height:1.15">Hva overrasket deg?</div>
+    <div class="disp" style="font-size:31px;font-weight:700;line-height:1.15">${SP_FRITEKST}</div>
     <textarea id="fritekst" maxlength="500" aria-label="Hva overrasket deg? Frivillig" placeholder="Skriv én setning … (frivillig)"
       style="width:100%;height:120px;resize:none;padding:15px 16px;background:#111;border:1px solid #4f46e5;border-radius:11px;color:#ededed;font-family:inherit;font-size:16px;line-height:1.5;outline:none">${esc(S.fritekst)}</textarea>
     <div class="fin">Svaret er anonymt og kan bli sitert i oppgaven. Ikke skriv noe som kan identifisere deg.</div>
