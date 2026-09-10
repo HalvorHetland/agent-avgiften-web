@@ -97,7 +97,8 @@ function tallene() {
 
   const raa = kaldstart ? 0 : Number(T.tokens_raa);
   const reint = kaldstart ? 0 : Number(T.tokens_reint);
-  const forhold = reint > 0 ? raa / reint : 0;
+  const heltPar = raa > 0 && reint > 0;
+  const forhold = heltPar ? raa / reint : 0;
 
   const kall = kaldstart ? 0 : Number(T.kall);
   // Bare våre egne kall. Den felles potten med Gjermund hører til lagtavla —
@@ -116,7 +117,7 @@ function tallene() {
   const aiWh = harMetode ? dekodingWh + lesingWh : kall * 0.24;
 
   return {
-    kaldstart, raa, reint, forhold, kall,
+    kaldstart, raa, reint, forhold, kall, heltPar,
     spoersmaal: T ? Number(T.spoersmaal) : 0,
     kuttede: T ? Number(T.kuttede_kall) : 0,
     raa_tegn: T ? Number(T.raa_tegn) : 0,
@@ -196,13 +197,14 @@ function sisteMaalinger() {
   }
   return SISTE.slice(0, 6).map((m) => {
     const side = String(m.side).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
-    const f = m.tokens_reint > 0 ? m.tokens_raa / m.tokens_reint : 0;
+    const par = Number(m.tokens_raa) > 0 && Number(m.tokens_reint) > 0;
+    const f = par ? m.tokens_raa / m.tokens_reint : 0;
     return `<div style="display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid #1c1c1c">
       <div class="mono" style="font-size:16px;color:#9a9a9a;width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${side}</div>
       <div class="mono" style="font-size:17px;color:#f97316;width:88px;text-align:right">${sep(m.tokens_raa)}</div>
       <div class="mono" style="font-size:15px;color:#4a4a4a">/</div>
       <div class="mono" style="font-size:17px;color:#4ade80;width:62px;text-align:right">${sep(m.tokens_reint)}</div>
-      <div class="mono disp" style="font-size:19px;color:#fb923c;margin-left:auto">${f < 10 ? komma(f) : Math.round(f)}×${m.kuttet ? "<span style='font-size:13px;color:#fbbf24'>+</span>" : ""}</div>
+      <div class="mono disp" style="font-size:19px;color:${par ? "#fb923c" : "#5a5a5a"};margin-left:auto">${par ? `${f < 10 ? komma(f) : Math.round(f)}×` : "—"}${par && m.kuttet ? "<span style='font-size:13px;color:#fbbf24'>+</span>" : ""}</div>
     </div>`;
   }).join("");
 }
@@ -222,7 +224,7 @@ function tegn() {
    * paastand om at AI-en ikke leser noe ekstra, altsaa det motsatte av
    * funnet. Strek er samme skrivemaate som resten av skjermen bruker for en
    * maaling som ikke finnes enda. */
-  const spart = d.kaldstart ? 0 : d.raa - d.reint;
+  const spart = d.heltPar ? d.raa - d.reint : 0;
 
   document.getElementById("rot").innerHTML = `
   <div style="display:flex;justify-content:space-between;align-items:center;gap:40px;flex-shrink:0">
@@ -297,7 +299,7 @@ function tegn() {
           <div class="statNavn">tokens spart</div>
         </div>
         <div class="stat">
-          <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:${d.kaldstart ? "#5a5a5a" : "#fb923c"}">${d.kaldstart ? "—" : (d.forhold < 10 ? komma(d.forhold) : sep(d.forhold))}<span style="font-size:21px;color:#9a9a9a">×</span></div>
+          <div class="mono disp statTall${nytt("forhold", Math.round(d.forhold))}" style="color:${d.heltPar ? "#fb923c" : "#5a5a5a"}">${d.heltPar ? (d.forhold < 10 ? komma(d.forhold) : sep(d.forhold)) : "—"}<span style="font-size:21px;color:#9a9a9a">×</span></div>
           <div class="statNavn">mer enn selve teksten${d.kuttede > 0 ? ", minst" : ""}</div>
         </div>
       </div>
